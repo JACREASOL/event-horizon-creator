@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Event Horizon">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>:root{color-scheme:light dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>Event Horizon Creator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one working column, numbered steps in a scroll rail, sticky back/next bar. Arc-teal accent, amber for balance flags. */
+:root{
+  --bg:#e8edf2; --panel:#f6f8fa; --ink:#13202b; --muted:#506070; --line:#c3cdd7;
+  --arc:#0a7a73; --arc-ink:#ffffff; --arc-soft:#d3ece9; --flag:#9a5a08; --flag-soft:#f4e6cf; --bad:#a3302a;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b1117; --panel:#131c25; --ink:#e3ebf2; --muted:#8fa2b4; --line:#26343f;
+  --arc:#46d2c2; --arc-ink:#052321; --arc-soft:#12332f; --flag:#e3a64e; --flag-soft:#33250f; --bad:#f08a82; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1117; --panel:#131c25; --ink:#e3ebf2; --muted:#8fa2b4; --line:#26343f;
+  --arc:#46d2c2; --arc-ink:#052321; --arc-soft:#12332f; --flag:#e3a64e; --flag-soft:#33250f; --bad:#f08a82; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:860px;margin:0 auto;padding-bottom:96px}
+header{padding:20px 0 12px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+.mark{font:800 30px/1 var(--f-display);letter-spacing:.08em;text-transform:uppercase;margin:0}
+.sub{font:12px var(--f-mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.rail{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:thin}
+.rail button{flex:0 0 auto;display:flex;gap:8px;align-items:center;background:transparent;color:var(--muted);border:1px solid var(--line);
+  padding:8px 12px;border-radius:4px;font:500 13px var(--f-body);cursor:pointer}
+.rail button b{font:500 12px var(--f-mono)}
+.rail button[aria-current="step"]{background:var(--arc);color:var(--arc-ink);border-color:var(--arc)}
+.rail button.done b::after{content:" ✓"}
+main{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:20px 18px}
+h2{font:800 28px/1.1 var(--f-display);letter-spacing:.04em;text-transform:uppercase;margin:0 0 4px;text-wrap:balance}
+h3{font:600 13px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px}
+.lede{color:var(--muted);margin:0 0 16px;max-width:65ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.card{text-align:left;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:12px;cursor:pointer;font:inherit;min-width:0}
+.card[aria-pressed="true"]{border-color:var(--arc);box-shadow:inset 0 0 0 1px var(--arc)}
+.card strong{display:block;font:800 20px/1.1 var(--f-display);letter-spacing:.05em;text-transform:uppercase}
+.card small{display:block;color:var(--muted);margin:2px 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font:500 11px var(--f-mono);background:var(--arc-soft);color:var(--arc);padding:2px 7px;border-radius:3px}
+.chip.flag{background:var(--flag-soft);color:var(--flag)}
+.chip.tier{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.detail{border-top:1px solid var(--line);margin-top:16px;padding-top:4px}
+.trait{padding:8px 0;border-bottom:1px dashed var(--line)}
+.trait:last-child{border-bottom:0}
+.trait b{font-weight:600}
+.trait p{margin:2px 0 0;color:var(--muted)}
+.flagnote{background:var(--flag-soft);color:var(--flag);border-radius:4px;padding:6px 10px;font-size:13px;margin-top:6px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .lab{flex:1 1 130px;min-width:0;font-weight:500}
+.row .lab small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.step{display:flex;align-items:center;gap:6px}
+.step button{width:34px;height:34px;border-radius:4px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:500 18px var(--f-mono);cursor:pointer}
+.step button:disabled{opacity:.35;cursor:default}
+.step output{min-width:2ch;text-align:center;font:500 16px var(--f-mono)}
+.final{font:500 12px var(--f-mono);color:var(--muted);min-width:7ch;text-align:right}
+.meter{font:500 13px var(--f-mono);color:var(--muted)}
+.meter b{color:var(--ink)}
+.meter.over{color:var(--bad)}
+.abilities{margin:4px 0 8px 14px;padding-left:12px;border-left:2px solid var(--line)}
+.abilities .row{border-bottom:0;padding:5px 0}
+.fx{flex-basis:100%;color:var(--muted);font-size:13px}
+.pillrow{display:flex;gap:6px;flex-wrap:wrap}
+.pill{padding:7px 12px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);font:500 13px var(--f-body);cursor:pointer}
+.pill[aria-pressed="true"]{background:var(--arc);color:var(--arc-ink);border-color:var(--arc)}
+input[type=text],textarea{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:9px 10px;font:inherit}
+textarea{min-height:90px;resize:vertical}
+input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--arc);outline-offset:2px}
+label.f{display:block;font:600 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);
+  padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.bar div{max-width:860px;margin:0 auto;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.btn{padding:10px 18px;border-radius:4px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:600 14px var(--f-body);cursor:pointer}
+.btn.primary{background:var(--arc);color:var(--arc-ink);border-color:var(--arc)}
+.btn:disabled{opacity:.4;cursor:default}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.stat{border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:var(--bg)}
+.stat span{display:block;font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.stat b{font:800 26px/1.1 var(--f-display)}
+.warn{color:var(--flag);margin:4px 0;font-size:14px}
+.ok{color:var(--arc);font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:12px;font:13px/1.5 var(--f-mono);margin:0}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.assump{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin-top:22px;padding-top:10px}
+.assump li{margin:3px 0}
+@media (prefers-reduced-motion:no-preference){.card,.btn,.pill{transition:border-color .15s,background .15s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1 class="mark">Event Horizon</h1>
+    <span class="sub">Character Creator · Core Rules v0.3</span>
+  </header>
+  <nav class="rail" id="rail" aria-label="Creation steps"></nav>
+  <main id="main"></main>
+</div>
+<div class="bar"><div>
+  <button class="btn" id="back">Back</button>
+  <span class="meter" id="status"></span>
+  <button class="btn primary" id="next">Next</button>
+</div></div>
+
+<script>
+const ATTRS=['muscles','accuracy','knowledge','memory','charm','toughness'];
+const AL={muscles:'Muscles',accuracy:'Accuracy',knowledge:'Knowledge',memory:'Memory',charm:'Charm',toughness:'Toughness'};
+const ADESC={muscles:'Physical power and melee force',accuracy:'Precision and aim',knowledge:'Education, tech, Arc theory',memory:'Wisdom, perception, recall',charm:'Social skill and presence',toughness:'Endurance and resilience'};
+const POINTS=10, ATTR_CAP=5, ABILITY_RANK_COST=1; /* ability costs are placeholders until the rulebook defines them */
+const SKILLS={
+  muscles:{'Athletics':['Heavy Lifting','Acrobatics'],'Melee Combat':['Grapple','Disarm']},
+  accuracy:{'Firearms':['Close Range','Medium Range','Long Range'],'Throwing':[],'Sleight of Hand':[],'Stealth':['Sneak']},
+  knowledge:{'Engineering':[],'Hacking':[],'Medical':[],'Investigation':[]},
+  memory:{'Eavesdropping':['Eavesdropping'],'Survival':[],'History':[],'Perception':[],'Navigation':[]},
+  charm:{'Negotiation':['Read the Room'],'Con':[],'Deception':[],'Leadership':[],'Performance':[]},
+  toughness:{}
+};
+const SNEAK={1:'+1 to Sneak checks. Move quietly.',2:'+1. Move at a faster pace while staying stealthy.',3:'+2 to Sneak checks.',4:'+2. Gear no longer penalizes sneaking.',5:'+3 to Sneak checks.'};
+const AB={
+  'Heavy Lifting':r=>`Lift about ${150+50*(r-1)} lbs. without a check.`,
+  'Acrobatics':r=>`+${r} to Acrobatics rolls.`,
+  'Grapple':r=>`Attack vs. Defense at +${r}. On success the target is restrained until they break free.`,
+  'Disarm':r=>`Attack vs. Defense. Success knocks the weapon loose; a strong success may let you seize it. (Rank 1+; rank scaling not yet defined.)`,
+  'Close Range':r=>`+${r} Accuracy with weapons suited to 6–30 ft.`,
+  'Medium Range':r=>`+${r} Accuracy with weapons suited to 31–90 ft.`,
+  'Long Range':r=>`+${r} Accuracy with weapons suited to 91–180 ft.`,
+  'Sneak':r=>SNEAK[r],
+  'Eavesdropping':r=>`Listen through barriers or at a distance. Rank ${r} improves range and clarity.`,
+  'Read the Room':r=>`Insight into a person or place. +${r} on a following Negotiation or Con check against them.`
+};
+const SPECIES={
+  korvath:{name:'Korvath',tag:'Dreadknights of volcanic Kharos',fixed:{toughness:2,muscles:1},arc:1,
+    flag:'Korvath is intentionally above the standard power baseline (4 bonus points vs. 3). Not in the species-abilities file.',
+    traits:[['Unyielding','Once per encounter, when reduced to 0 HP, stay standing at 1 HP. Resets on long rest.'],['Hardened Hide','Natural scales add to Armor or reduce damage from minor attacks.'],['Burden Bearer','Bonus when resisting fear, intimidation, or forced retreat or surrender.']]},
+  floran:{name:'Floran',tag:'Plant-fungal-animal life of Viridia',fixed:{charm:1,toughness:1,memory:1},
+    choose:[['regen','Natural Regeneration','Recover 2 HP at the start of each turn in combat. Once per combat, as a free action, recover 1d8 HP. Mild injuries resolve without a Breather.'],['symbiotic','Symbiotic Biology','Immune to Weakened from toxic atmospheres or poison. +3 to resist disease. As an Action, release spores in a 15 ft radius: enemies pass a Standard check or are Blinded until the end of their next turn.']],
+    traits:[]},
+  human:{name:'Human',tag:'The wildcard species',float:5,
+    traits:[['Adaptable','5 floating attribute bonus points instead of the standard 3. Once per session, reroll one failed skill roll and take the higher. One free rank-1 ability of your choice.']],
+    flag:'5 floating points + free ability + reroll is a lot of flexibility next to the 3 fixed points others get. Watch in playtest.'},
+  shadara:{name:'Shadara',tag:'"The unseen truth is often the strongest."',fixed:{accuracy:2,knowledge:1},
+    traits:[['Dark Vision','See clearly in dim light and darkness. Movement makes no sound.'],['Keen Observer','Once per long rest, the GM reveals one hidden truth (enemy, lie, trap, weakness). No roll.'],['Shadow Step','Free action: teleport up to Speed × 10 ft to dim light or darkness you can see. Three uses per Rest.']],
+    flag:'Shadow Step is a free action on top of normal movement. Flagged for playtest in your file.'},
+  tendrix:{name:'Tendrix',tag:'Formerly Podchephila',fixed:{knowledge:2,memory:1},
+    traits:[['Many Hands','Wield two-handed items as one-handed. Interact with two objects as a single action. +2 to Technology rolls with tools, repairs, or delicate work.'],['Adaptive Camouflage','Free action: +3 to Stealth while stationary. Moving breaks it.'],['Amphibious','Breathe air and water with no limit.']],
+    flag:'Many Hands stacks several strong effects in one trait. Flagged for playtest in your file.'},
+  vulkari:{name:'Vulkari',tag:'Wolf-like pack hunters',vulkari:true,
+    traits:[['Pack Tactics','With an ally within 10 ft: +1 to attack rolls and +1 to defense.'],['Keen Senses','+1d6 to Perception checks using smell or hearing.']],
+    flag:'Pack Tactics gives a flat +1 attack and +1 defense, bigger than a single ability rank. Worth watching on a d20 with 5-point difficulty steps.'}
+};
+const CAREERS=[
+  ['Merchant',1],['Scholar',1],['Medic',1],['Pilot',2],['Engineer',2],['Investigator',2],
+  ['Soldier',3],['Bounty Hunter',3],['Smuggler',3],['Dreadknight',4],['Black-market Operative',4]];
+const TIER={1:'Standard',2:'Moderate',3:'Higher',4:'Highest'};
+const STEPS=['Species','Attributes','Career','Skills','Gear','Sheet'];
+
+const blank=()=>({step:0,name:'',species:'',vPrimary:'muscles',vExtra:'charm',fTrait:'regen',hFloat:{},
+  base:Object.fromEntries(ATTRS.map(a=>[a,0])),career:'',skills:{},abil:{},freeAb:'',gear:'',notes:''});
+let S=blank();
+try{const raw=localStorage.getItem('eh-char');if(raw){S=Object.assign(blank(),JSON.parse(raw))}}catch(e){}
+function save(){try{localStorage.setItem('eh-char',JSON.stringify(S))}catch(e){}}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function bonus(){
+  const b=Object.fromEntries(ATTRS.map(a=>[a,0])),sp=SPECIES[S.species];
+  if(!sp)return b;
+  for(const k in (sp.fixed||{}))b[k]+=sp.fixed[k];
+  if(sp.vulkari){b[S.vPrimary]+=2;b[S.vExtra]+=1}
+  if(sp.float){for(const k in S.hFloat)b[k]+=S.hFloat[k]}
+  return b;
+}
+const final=a=>S.base[a]+bonus()[a];
+const baseSpent=()=>ATTRS.reduce((n,a)=>n+S.base[a],0);
+const floatLeft=()=>(SPECIES[S.species]&&SPECIES[S.species].float||0)-Object.values(S.hFloat).reduce((n,v)=>n+v,0);
+const skillRank=s=>S.skills[s]||0;
+const abKey=(s,a)=>s+'|'+a;
+const abRank=(s,a)=>S.abil[abKey(s,a)]||0;
+function abCost(s,a){const r=abRank(s,a);return Math.max(0,r-(S.freeAb===abKey(s,a)&&r>0?1:0))*ABILITY_RANK_COST}
+function spent(attr){
+  let n=0;
+  for(const s in SKILLS[attr]){n+=skillRank(s);for(const a of SKILLS[attr][s])n+=abCost(s,a)}
+  return n;
+}
+const left=attr=>final(attr)-spent(attr);
+function resetAttr(attr){for(const s in SKILLS[attr]){delete S.skills[s];for(const a of SKILLS[attr][s])delete S.abil[abKey(s,a)]}}
+function normalize(){
+  for(const a of ATTRS){
+    if(S.base[a]+bonus()[a]>ATTR_CAP)S.base[a]=Math.max(0,ATTR_CAP-bonus()[a]);
+    if(left(a)<0)resetAttr(a);
+  }
+  if(S.freeAb&&S.species!=='human')S.freeAb='';
+}
+const arcPool=()=>(final('knowledge')+final('memory'))*3+((SPECIES[S.species]||{}).arc||0);
+const bonusChips=()=>{
+  const sp=SPECIES[S.species];return sp};
+function chipsFor(k){
+  const sp=SPECIES[k],out=[];
+  for(const a in (sp.fixed||{}))out.push(`+${sp.fixed[a]} ${AL[a]}`);
+  if(sp.arc)out.push(`+${sp.arc} Arc`);
+  if(sp.vulkari)out.push('+2 Muscles or Accuracy','+1 any');
+  if(sp.float)out.push(`+${sp.float} floating`);
+  return out.map(c=>`<span class="chip">${c}</span>`).join('');
+}
+
+/* ---------- steps ---------- */
+function stepSpecies(){
+  let h=`<h2>Choose your species</h2><p class="lede">Species sets your attribute bonuses and special abilities. Kongari is not covered in your species file, so it is left out for now.</p><div class="grid">`;
+  for(const k in SPECIES){const sp=SPECIES[k];
+    h+=`<button class="card" data-a="species" data-v="${k}" aria-pressed="${S.species===k}"><strong>${sp.name}</strong><small>${sp.tag}</small><span class="chips">${chipsFor(k)}</span></button>`}
+  h+='</div>';
+  const sp=SPECIES[S.species];
+  if(sp){
+    h+=`<div class="detail"><h3>${sp.name} traits</h3>`;
+    if(sp.choose){
+      h+=`<div class="trait"><b>Choose one trait</b><div class="pillrow" style="margin-top:6px">`+sp.choose.map(c=>`<button class="pill" data-a="ftrait" data-v="${c[0]}" aria-pressed="${S.fTrait===c[0]}">${c[1]}</button>`).join('')+`</div>`;
+      const c=sp.choose.find(c=>c[0]===S.fTrait);h+=`<p>${c[2]}</p></div>`;
+    }
+    for(const t of sp.traits)h+=`<div class="trait"><b>${t[0]}</b><p>${t[1]}</p></div>`;
+    if(sp.vulkari){
+      h+=`<h3>Your bonuses</h3><div class="trait"><b>+2 to</b><div class="pillrow" style="margin:6px 0">`+['muscles','accuracy'].map(a=>`<button class="pill" data-a="vp" data-v="${a}" aria-pressed="${S.vPrimary===a}">${AL[a]}</button>`).join('')+`</div><b>+1 to</b><div class="pillrow" style="margin-top:6px">`+ATTRS.map(a=>`<button class="pill" data-a="vx" data-v="${a}" aria-pressed="${S.vExtra===a}">${AL[a]}</button>`).join('')+`</div></div>`;
+    }
+    if(sp.float){
+      h+=`<h3>Place your ${sp.float} floating points <span class="meter">(${floatLeft()} left)</span></h3>`;
+      for(const a of ATTRS)h+=`<div class="row"><span class="lab">${AL[a]}</span><span class="step"><button data-a="hf" data-v="${a}" data-d="-1" ${!(S.hFloat[a]>0)?'disabled':''}>−</button><output>${S.hFloat[a]||0}</output><button data-a="hf" data-v="${a}" data-d="1" ${floatLeft()<=0?'disabled':''}>+</button></span></div>`;
+    }
+    if(sp.flag)h+=`<div class="flagnote"><b>Balance watch:</b> ${sp.flag}</div>`;
+    h+='</div>';
+  }
+  return h;
+}
+function stepAttrs(){
+  const used=baseSpent(),b=bonus();
+  let h=`<h2>Distribute attributes</h2><p class="lede">Spend ${POINTS} points. No attribute may pass ${ATTR_CAP} at creation, species bonus included. Each point becomes a skill rank to spend in that attribute.</p>
+  <p class="meter ${used>POINTS?'over':''}"><b>${POINTS-used}</b> of ${POINTS} points left</p>`;
+  for(const a of ATTRS){
+    const cap=ATTR_CAP-b[a];
+    h+=`<div class="row"><span class="lab">${AL[a]}<small>${ADESC[a]}</small></span>
+      ${b[a]?`<span class="chip">+${b[a]} species</span>`:''}
+      <span class="step"><button data-a="attr" data-v="${a}" data-d="-1" ${S.base[a]<=0?'disabled':''}>−</button><output>${S.base[a]}</output><button data-a="attr" data-v="${a}" data-d="1" ${S.base[a]>=cap||used>=POINTS?'disabled':''}>+</button></span>
+      <span class="final">= ${final(a)} total</span></div>`;
+  }
+  h+=`<h3>Derived</h3><div class="stats"><div class="stat"><span>Arc Pool</span><b>${arcPool()}</b></div><div class="stat"><span>Speed</span><b>3</b></div></div>
+  <p class="lede" style="margin-top:8px;font-size:13px">Arc Pool = (Knowledge + Memory) × 3${(SPECIES[S.species]||{}).arc?` + ${SPECIES[S.species].arc} species Arc`:''}. Speed 3 = 30 ft.</p>`;
+  return h;
+}
+function stepCareer(){
+  let h=`<h2>Choose your career</h2><p class="lede">A career is what your character does for a living. It sets your starting Digi tier and your contacts. It is not a class.</p><div class="grid">`;
+  for(const [n,t] of CAREERS)h+=`<button class="card" data-a="career" data-v="${n}" aria-pressed="${S.career===n}"><strong>${n}</strong><span class="chips" style="margin-top:6px"><span class="chip tier">Tier ${t} · ${TIER[t]} Digi</span></span></button>`;
+  return h+'</div>';
+}
+function stepSkills(){
+  let h=`<h2>Skills and abilities</h2><p class="lede">Every point of an attribute is one skill rank. Abilities are bought with the same pool and cannot rank higher than their skill. Ability cost is a placeholder of ${ABILITY_RANK_COST} per rank.</p>`;
+  for(const a of ATTRS){
+    const pool=final(a),l=left(a);
+    h+=`<h3>${AL[a]} <span class="meter ${l<0?'over':''}">· <b>${l}</b> of ${pool} left</span></h3>`;
+    const sk=SKILLS[a];
+    if(!Object.keys(sk).length){h+=`<p class="lede" style="font-size:13px">Toughness skills are still in development.</p>`;continue}
+    for(const s in sk){
+      const r=skillRank(s);
+      h+=`<div class="row"><span class="lab">${s}</span><span class="step"><button data-a="skill" data-v="${s}" data-at="${a}" data-d="-1" ${r<=0?'disabled':''}>−</button><output>${r}</output><button data-a="skill" data-v="${s}" data-at="${a}" data-d="1" ${l<=0||r>=5?'disabled':''}>+</button></span></div>`;
+      const abs=sk[s];
+      const showAbs=abs.filter(x=>r>0||S.freeAb===abKey(s,x));
+      if(showAbs.length){
+        h+='<div class="abilities">';
+        for(const x of showAbs){
+          const k=abKey(s,x),ar=abRank(s,x),free=S.freeAb===k;
+          const maxR=Math.min(5,Math.max(r,free?1:0));
+          const step=ar<maxR&&(l>=ABILITY_RANK_COST||(free&&ar===0));
+          h+=`<div class="row"><span class="lab">${x}${free?' <span class="chip">free R1</span>':''}</span><span class="step"><button data-a="abil" data-v="${k}" data-d="-1" ${ar<=0?'disabled':''}>−</button><output>${ar}</output><button data-a="abil" data-v="${k}" data-d="1" ${step?'':'disabled'}>+</button></span><span class="fx">${ar?AB[x](ar):'Not learned.'}</span></div>`;
+        }
+        h+='</div>';
+      }
+    }
+  }
+  if(S.species==='human'){
+    h+=`<h3>Human: free rank-1 ability</h3><p class="lede" style="font-size:13px">Pick one ability to start at rank 1 at no cost.</p><div class="pillrow">`;
+    for(const a of ATTRS)for(const s in SKILLS[a])for(const x of SKILLS[a][s]){const k=abKey(s,x);h+=`<button class="pill" data-a="free" data-v="${k}" aria-pressed="${S.freeAb===k}">${x}</button>`}
+    h+='</div>';
+  }
+  return h;
+}
+function stepGear(){
+  const t=(CAREERS.find(c=>c[0]===S.career)||[])[1];
+  return `<h2>Equipment and notes</h2>
+  <p class="lede">${t?`Your career is Tier ${t}, so you start with a ${TIER[t]} Digi budget. The exact Digi amounts are not defined in v0.3.`:'Pick a career to see your starting Digi tier.'}</p>
+  <div class="stats"><div class="stat"><span>Cheap</span>Basic tools, civilian clothes</div><div class="stat"><span>Standard</span>Service pistols, light armor</div><div class="stat"><span>Military</span>Restricted; needs connections</div><div class="stat"><span>Black Market</span>Illegal or Arc tech</div></div>
+  <label class="f" for="gear">Starting gear</label><textarea id="gear" data-f="gear" placeholder="Pistol, light armor, field kit...">${esc(S.gear)}</textarea>
+  <label class="f" for="notes">Contacts, background, Divine Favor notes</label><textarea id="notes" data-f="notes">${esc(S.notes)}</textarea>`;
+}
+function warnings(){
+  const w=[];
+  if(!S.name.trim())w.push('Your character has no name.');
+  if(!S.species)w.push('No species chosen.');
+  if(S.species==='human'&&floatLeft()>0)w.push(`${floatLeft()} Human floating points unplaced.`);
+  if(baseSpent()<POINTS)w.push(`${POINTS-baseSpent()} attribute points unspent.`);
+  if(!S.career)w.push('No career chosen.');
+  for(const a of ATTRS){if(a!=='toughness'&&left(a)>0)w.push(`${left(a)} ${AL[a]} rank${left(a)>1?'s':''} unspent.`)}
+  return w;
+}
+function textSheet(){
+  const sp=SPECIES[S.species],b=bonus(),L=[];
+  L.push(`EVENT HORIZON — ${S.name||'Unnamed'}`);
+  L.push(`Species: ${sp?sp.name:'—'}   Career: ${S.career||'—'}${S.career?` (Tier ${CAREERS.find(c=>c[0]===S.career)[1]})`:''}`);
+  L.push('');
+  L.push('ATTRIBUTES  '+ATTRS.map(a=>`${AL[a]} ${final(a)}`).join(' · '));
+  L.push(`Arc Pool ${arcPool()} · Speed 3 (30 ft) · Divine Favor max 5`);
+  L.push('');
+  if(sp){
+    L.push('TRAITS');
+    if(sp.choose){const c=sp.choose.find(c=>c[0]===S.fTrait);L.push(`- ${c[1]}: ${c[2]}`)}
+    for(const t of sp.traits)L.push(`- ${t[0]}: ${t[1]}`);
+    L.push('');
+  }
+  L.push('SKILLS');
+  let any=false;
+  for(const a of ATTRS)for(const s in SKILLS[a]){
+    const r=skillRank(s);if(!r)continue;any=true;
+    const ab=SKILLS[a][s].filter(x=>abRank(s,x)).map(x=>`${x} R${abRank(s,x)}`);
+    L.push(`- ${s} ${r}${ab.length?' ['+ab.join(', ')+']':''}`);
+  }
+  if(S.freeAb){const [s,x]=S.freeAb.split('|');if(!abRank(s,x))L.push(`- Free ability: ${x} R1`)}
+  if(!any&&!S.freeAb)L.push('- none');
+  if(S.gear.trim()){L.push('','GEAR',S.gear.trim())}
+  if(S.notes.trim()){L.push('','NOTES',S.notes.trim())}
+  return L.join('\n');
+}
+function stepSheet(){
+  const w=warnings();
+  return `<h2>${esc(S.name)||'Character sheet'}</h2>
+  <label class="f" for="name">Character name</label><input type="text" id="name" data-f="name" value="${esc(S.name)}" placeholder="Name">
+  <h3>Check</h3>${w.length?w.map(x=>`<div class="warn">• ${x}</div>`).join(''):'<div class="ok">Build is complete.</div>'}
+  <h3>Sheet</h3><div class="stats" style="margin-bottom:10px">${ATTRS.map(a=>`<div class="stat"><span>${AL[a]}</span><b>${final(a)}</b></div>`).join('')}<div class="stat"><span>Arc Pool</span><b>${arcPool()}</b></div></div>
+  <pre id="sheet">${esc(textSheet())}</pre>
+  <div class="actions"><button class="btn primary" data-a="copy">Copy sheet</button><button class="btn" data-a="newchar">Start a new character</button></div>
+  <div id="msg" class="meter" aria-live="polite"></div>
+  <ul class="assump"><li>Species bonuses add to attributes, and the total sets your skill-rank pool.</li><li>The 5-point cap applies to the total including species bonus.</li><li>Species Arc bonus (+1 for Korvath) is added to Arc Pool as a flat point.</li><li>HP, Evasion (needs Silhouette) and Digi amounts are not defined in v0.3, so they are blank.</li><li>Read the Room sits under Negotiation. Your rules list it under Charm without a parent skill.</li></ul>`;
+}
+
+/* ---------- shell ---------- */
+const FNS=[stepSpecies,stepAttrs,stepCareer,stepSkills,stepGear,stepSheet];
+function done(i){return [!!S.species&&(S.species!=='human'||floatLeft()===0),baseSpent()===POINTS,!!S.career,ATTRS.every(a=>left(a)===0||a==='toughness'),!!(S.gear||S.notes),warnings().length===0][i]}
+function render(){
+  normalize();save();
+  document.getElementById('rail').innerHTML=STEPS.map((n,i)=>`<button data-a="go" data-v="${i}" class="${done(i)&&i!==S.step?'done':''}" ${i===S.step?'aria-current="step"':''}><b>${i+1}</b>${n}</button>`).join('');
+  document.getElementById('main').innerHTML=FNS[S.step]();
+  document.getElementById('back').disabled=S.step===0;
+  const nx=document.getElementById('next');nx.style.visibility=S.step===STEPS.length-1?'hidden':'visible';
+  const sp=SPECIES[S.species];
+  document.getElementById('status').textContent=`${sp?sp.name:'No species'} · ${S.career||'No career'}`;
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-a]');if(!t)return;
+  const v=t.dataset.v,d=+t.dataset.d,at=t.dataset.at;
+  switch(t.dataset.a){
+    case 'go':S.step=+v;break;
+    case 'species':if(S.species!==v){S.species=v;S.hFloat={};S.freeAb='';for(const a of ATTRS)if(S.base[a]+0>ATTR_CAP)S.base[a]=ATTR_CAP}break;
+    case 'ftrait':S.fTrait=v;break;
+    case 'vp':S.vPrimary=v;break;
+    case 'vx':S.vExtra=v;break;
+    case 'hf':{const n=(S.hFloat[v]||0)+d;if(n<=0)delete S.hFloat[v];else S.hFloat[v]=n;break}
+    case 'attr':S.base[v]=Math.max(0,S.base[v]+d);break;
+    case 'career':S.career=v;break;
+    case 'skill':{const r=Math.max(0,skillRank(v)+d);if(r)S.skills[v]=r;else delete S.skills[v];
+      for(const x of SKILLS[at][v]){const k=abKey(v,x),cap=(S.freeAb===k?Math.max(r,1):r);if(abRank(v,x)>cap){if(cap)S.abil[k]=cap;else delete S.abil[k]}}break}
+    case 'abil':{const n=Math.max(0,(S.abil[v]||0)+d);if(n)S.abil[v]=n;else delete S.abil[v];break}
+    case 'free':{S.freeAb=S.freeAb===v?'':v;break}
+    case 'newchar':S=blank();break;
+    case 'copy':{const txt=textSheet(),m=document.getElementById('msg');
+      const fallback=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById('sheet'));const s=getSelection();s.removeAllRanges();s.addRange(r);m.textContent='Sheet selected. Copy it manually.'};
+      try{navigator.clipboard.writeText(txt).then(()=>{m.textContent='Copied.'},fallback)}catch(err){fallback()}
+      return}
+  }
+  const y=scrollY;render();if(t.dataset.a!=='go')scrollTo(0,y)
+});
+document.addEventListener('input',e=>{const f=e.target.dataset&&e.target.dataset.f;if(!f)return;S[f]=e.target.value;save();
+  if(f==='name'){const h=document.querySelector('main h2');if(h)h.textContent=S.name||'Character sheet';const p=document.getElementById('sheet');if(p)p.textContent=textSheet()}});
+document.getElementById('back').onclick=()=>{S.step=Math.max(0,S.step-1);render();scrollTo(0,0)};
+document.getElementById('next').onclick=()=>{S.step=Math.min(STEPS.length-1,S.step+1);render();scrollTo(0,0)};
+render();
+</script>
+
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
+</body></html>
