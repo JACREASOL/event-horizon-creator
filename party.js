@@ -9,7 +9,7 @@ const clean=c=>(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);
 const newCode=()=>{const a='BCDFGHJKLMNPQRSTVWXZ23456789';let s='';for(let i=0;i<5;i++)s+=a[Math.floor(Math.random()*a.length)];return s};
 function mine(){
   const p=PL();
-  return{info:{name:S.name||'Unnamed',species:(SPECIES[S.species]||{}).name||'—',career:S.career||'—',attrs:Object.fromEntries(ATTRS.map(a=>[a,final(a)])),sheet:textSheet()},
+  return{info:{name:S.name||'Unnamed',species:(SPECIES[S.species]||{}).name||'—',career:S.career||'—',attrs:Object.fromEntries(ATTRS.map(a=>[a,final(a)])),sheet:textSheet(),img:S.portrait||''},
     live:{hp:p.hp,hpMax:p.hpMax,ap:p.ap,apMax:p.apMax,arc:p.arc,arcMax:arcPool(),favor:p.favor,ev:evasion()}};
 }
 function push(){
@@ -75,7 +75,7 @@ function view(){
   <div class="meter" aria-live="polite">${esc(status)}</div>`;
   for(const id of ids){
     const m=members[id],i=m.info||{},l=m.live;
-    h+=`<div class="pcard"><h4>${esc(i.name||'Unnamed')}${id===S.pid?' <span class="chip">you</span>':''}</h4><div class="sub2">${esc(i.species||'—')} · ${esc(i.career||'—')}${l?` · Evasion ${l.ev}`:''}</div>`;
+    h+=`<div class="pcard"><h4>${/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(i.img||'')?`<img src="${i.img}" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:8px">`:''}${esc(i.name||'Unnamed')}${id===S.pid?' <span class="chip">you</span>':''}</h4><div class="sub2">${esc(i.species||'—')} · ${esc(i.career||'—')}${l?` · Evasion ${l.ev}`:''}</div>`;
     if(l){h+=row(id,m,'HP','hp','--arc',l.hpMax)+row(id,m,'Armor','ap','--flag',l.apMax)+row(id,m,'Arc','arc','--arc',l.arcMax)+row(id,m,'Favor','favor','--flag',5)}
     if(i.attrs)h+=`<div class="chips" style="margin:8px 0">${ATTRS.map(a=>`<span class="chip">${AL[a].slice(0,3)} ${i.attrs[a]??0}</span>`).join('')}</div>`;
     h+=`<button class="pill" data-a="ptyopen" data-id="${id}" aria-pressed="${!!open[id]}">${open[id]?'Hide sheet':'Show sheet'}</button>${open[id]&&i.sheet?`<pre style="margin-top:8px">${esc(i.sheet)}</pre>`:''}</div>`;
