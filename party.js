@@ -4,7 +4,7 @@ const cfg=window.EH_FIREBASE;
 const BASE='https://www.gstatic.com/firebasejs/10.14.1/';
 let db=null,root=null,myRef=null,members={},joined='',timer=null,lastInfo='',lastLive='',lastObj=null,open={},status='';
 const load=src=>new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error(src));document.head.appendChild(s)});
-async function init(){if(db)return;await load(BASE+'firebase-app-compat.js');await load(BASE+'firebase-database-compat.js');firebase.initializeApp(cfg);db=firebase.database()}
+async function init(){if(db)return;if(!window.EHAcct)throw new Error('no account module');const f=await EHAcct.boot();db=f.db}
 const clean=c=>(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);
 const newCode=()=>{const a='BCDFGHJKLMNPQRSTVWXZ23456789';let s='';for(let i=0;i<5;i++)s+=a[Math.floor(Math.random()*a.length)];return s};
 function mine(){
@@ -39,6 +39,7 @@ function onSnap(snap){
 async function join(code){
   status='Connecting...';render();
   try{await init()}catch(e){status='Could not reach Firebase. Check your connection.';render();return}
+  if(!EHAcct.user()){status='Sign in on the Account tab first.';S.inParty=false;render();return}
   try{
     if(root)root.off();
     joined=code;S.pcode=code;S.inParty=true;
@@ -60,6 +61,8 @@ function row(id,m,label,k,c,max){
 }
 function view(){
   if(!cfg)return `<h2>Party</h2><p class="lede">Party sync is not set up yet. Add your Firebase settings to firebase-config.js, then reload.</p>`;
+  const st=window.EHAcct?EHAcct.state():'out';
+  if(!joined&&st!=='in')return `<h2>Party</h2><p class="lede">${st==='wait'?'Checking your sign-in...':'Sign in on the Account tab to join or start a party.'}</p>${st==='wait'?'':'<div class="actions"><button class="btn primary" data-a="mode" data-v="acct">Go to Account</button></div>'}`;
   if(!joined){
     return `<h2>Party</h2><p class="lede">Join with the code your GM gives you, or start a new party. Everyone with the code sees your name, trackers and sheet.</p>
     <label class="f" for="pcode">Party code</label><input type="text" id="pcode" data-f="pcode" value="${esc(S.pcode||'')}" placeholder="K7M2Q" autocapitalize="characters" autocomplete="off" autocorrect="off">
