@@ -146,15 +146,43 @@ const AL={muscles:'Muscles',accuracy:'Accuracy',knowledge:'Knowledge',memory:'Me
 const ADESC={muscles:'Physical power and melee force',accuracy:'Precision and aim',knowledge:'Education, tech, Arc theory',memory:'Wisdom, perception, recall',charm:'Social skill and presence',toughness:'Endurance and resilience'};
 const POINTS=10, ATTR_CAP=5, ABILITY_RANK_COST=1; /* ability costs are placeholders until the rulebook defines them */
 const SKILLS={
-  muscles:{'Athletics':['Heavy Lifting','Acrobatics'],'Melee Combat':['Grapple','Disarm']},
-  accuracy:{'Firearms':['Close Range','Medium Range','Long Range'],'Throwing':[],'Sleight of Hand':[],'Stealth':['Sneak']},
+  muscles:{'Athletics':['Heavy Lifting','Acrobatics','Unstoppable'],'Melee Combat':['Grapple','Disarm','Brutal Strike','Relentless','Juggernaut','Killing Blow','Rampage','Melee Weapon Familiarity']},
+  accuracy:{'Firearms':['Close Range','Medium Range','Long Range','Weapon Familiarity','Weapon Mastery','Suppressing Fire','Apex Predator'],'Long Range':['Patient','Weak Point','Long Shot','Controlled Breathing'],'Throwing':[],'Sleight of Hand':[],'Stealth':['Sneak']},
   knowledge:{'Engineering':[],'Hacking':[],'Medical':[],'Investigation':[]},
-  memory:{'Eavesdropping':['Eavesdropping'],'Survival':[],'History':[],'Perception':[],'Navigation':[]},
-  charm:{'Negotiation':['Read the Room'],'Con':[],'Deception':[],'Leadership':[],'Performance':[]},
-  toughness:{}
+  memory:{'Eavesdropping':['Eavesdropping'],'Survival':[],'History':[],'Perception':['Combat Awareness'],'Navigation':[]},
+  charm:{'Negotiation':['Read the Room'],'Con':[],'Deception':[],'Leadership':['Battlefield Discipline'],'Performance':[]},
+  toughness:{'Wounds':['Battle Hardened','Second Wind','Iron Will','Thick Skin']}
 };
 const SNEAK={1:'+1 to Sneak checks. Move quietly.',2:'+1. Move at a faster pace while staying stealthy.',3:'+2 to Sneak checks.',4:'+2. Gear no longer penalizes sneaking.',5:'+3 to Sneak checks.'};
+/* cost per rank, max rank, prerequisites. Costs come from the abilities chat; ones marked EST are placeholders from the old Soldier list. */
+const COST={'Brutal Strike':1,'Relentless':1,'Juggernaut':2,'Killing Blow':5,'Rampage':5,'Melee Weapon Familiarity':5,'Unstoppable':2,'Weapon Familiarity':5,'Weapon Mastery':5,'Suppressing Fire':2,'Apex Predator':5,'Patient':1,'Weak Point':1,'Long Shot':1,'Controlled Breathing':2,'Combat Awareness':5,'Battlefield Discipline':2,'Battle Hardened':1,'Second Wind':2,'Iron Will':3,'Thick Skin':1};
+const EST=['Brutal Strike','Patient','Weak Point','Long Shot','Controlled Breathing','Battle Hardened','Second Wind','Iron Will','Thick Skin'];
+const MAXR={'Relentless':1,'Juggernaut':1,'Killing Blow':1,'Rampage':1,'Melee Weapon Familiarity':1,'Unstoppable':1,'Weapon Familiarity':1,'Weapon Mastery':1,'Suppressing Fire':1,'Apex Predator':1,'Patient':1,'Weak Point':1,'Long Shot':1,'Controlled Breathing':1,'Combat Awareness':1,'Battlefield Discipline':1,'Second Wind':1,'Iron Will':1,'Thick Skin':3};
+const REQ={'Weapon Mastery':['Firearms','Weapon Familiarity',1],'Iron Will':['Wounds','Battle Hardened',3]};
+const unitCost=x=>COST[x]||ABILITY_RANK_COST;
+const reqOk=x=>{const q=REQ[x];return !q||abRank(q[0],q[1])>=q[2]};
 const AB={
+  'Brutal Strike':r=>`Once per turn, a melee hit also applies Weakened. ${r} use${r>1?'s':''} per combat.`,
+  'Relentless':()=>'After dropping an enemy to 0 HP, move up to 10 ft as a free action.',
+  'Juggernaut':()=>'When you Sprint, move through enemies; each takes 1d6 damage.',
+  'Killing Blow':()=>'A melee critical hit forces the target to roll on the injury table regardless of remaining HP.',
+  'Rampage':()=>'Once per combat, make two melee attacks as one Action.',
+  'Melee Weapon Familiarity':()=>'Pick one melee weapon type; your attacks with it bypass armor on a natural 19+.',
+  'Unstoppable':()=>'Immune to Slowed. Difficult terrain costs no extra movement.',
+  'Weapon Familiarity':()=>'Pick one weapon type; ignore range penalties with it.',
+  'Weapon Mastery':()=>'Needs Weapon Familiarity. Pick one weapon type; its attacks deal one extra damage die.',
+  'Suppressing Fire':()=>'Forgo your attack to apply Suppressed to all enemies in a 30 ft cone until your next turn.',
+  'Apex Predator':()=>'Enemies Engaged with you get no cover bonus to Evasion.',
+  'Patient':()=>'If you did not move last turn, +1 to attack rolls this turn. Stacks with Steady Aim.',
+  'Weak Point':()=>'Once per combat, one attack that hits ignores all AP.',
+  'Long Shot':()=>'Maximum range extends one range band.',
+  'Controlled Breathing':()=>'Once per turn, reroll one attack die and take the higher.',
+  'Combat Awareness':()=>'Never surprised. Always act in the first round even if ambushed.',
+  'Battlefield Discipline':()=>'Allies within Medium range who can see or hear you are immune to Panicked.',
+  'Battle Hardened':r=>`+${5*r} to injury table rolls.`,
+  'Second Wind':()=>'Once per combat, free action: recover 1d8 HP.',
+  'Iron Will':()=>'Needs Battle Hardened rank 3. Once per session, treat one injury table roll as 76–100.',
+  'Thick Skin':r=>`+${4*r} maximum HP. The only way to raise max HP.`,
   'Heavy Lifting':r=>`Lift about ${150+50*(r-1)} lbs. without a check.`,
   'Acrobatics':r=>`+${r} to Acrobatics rolls.`,
   'Grapple':r=>`Attack vs. Defense at +${r}. On success the target is restrained until they break free.`,
@@ -213,7 +241,7 @@ const floatLeft=()=>(SPECIES[S.species]&&SPECIES[S.species].float||0)-Object.val
 const skillRank=s=>S.skills[s]||0;
 const abKey=(s,a)=>s+'|'+a;
 const abRank=(s,a)=>S.abil[abKey(s,a)]||0;
-function abCost(s,a){const r=abRank(s,a);return Math.max(0,r-(S.freeAb===abKey(s,a)&&r>0?1:0))*ABILITY_RANK_COST}
+function abCost(s,a){const r=abRank(s,a);return Math.max(0,r-(S.freeAb===abKey(s,a)&&r>0?1:0))*unitCost(a)}
 function spent(attr){
   let n=0;
   for(const s in SKILLS[attr]){n+=skillRank(s);for(const a of SKILLS[attr][s])n+=abCost(s,a)}
@@ -287,12 +315,12 @@ function stepCareer(){
   return h+'</div>';
 }
 function stepSkills(){
-  let h=`<h2>Skills and abilities</h2><p class="lede">Every point of an attribute is one skill rank. Abilities are bought with the same pool and cannot rank higher than their skill. Ability cost is a placeholder of ${ABILITY_RANK_COST} per rank.</p>`;
+  let h=`<h2>Skills and abilities</h2><p class="lede">Every point of an attribute is one skill rank. Abilities are bought with the same pool and cannot rank higher than their skill. Each ability shows its cost; \"est.\" costs are placeholders.</p>`;
   for(const a of ATTRS){
     const pool=final(a),l=left(a);
     h+=`<h3>${AL[a]} <span class="meter ${l<0?'over':''}">· <b>${l}</b> of ${pool} left</span></h3>`;
     const sk=SKILLS[a];
-    if(!Object.keys(sk).length){h+=`<p class="lede" style="font-size:13px">Toughness skills are still in development.</p>`;continue}
+    if(!Object.keys(sk).length){h+=`<p class="lede" style="font-size:13px">Toughness has one skill so far.</p>`;continue}
     for(const s in sk){
       const r=skillRank(s);
       h+=`<div class="row"><span class="lab">${s}</span><span class="step"><button data-a="skill" data-v="${s}" data-at="${a}" data-d="-1" ${r<=0?'disabled':''}>−</button><output>${r}</output><button data-a="skill" data-v="${s}" data-at="${a}" data-d="1" ${l<=0||r>=5?'disabled':''}>+</button></span></div>`;
@@ -302,9 +330,9 @@ function stepSkills(){
         h+='<div class="abilities">';
         for(const x of showAbs){
           const k=abKey(s,x),ar=abRank(s,x),free=S.freeAb===k;
-          const maxR=Math.min(5,Math.max(r,free?1:0));
-          const step=ar<maxR&&(l>=ABILITY_RANK_COST||(free&&ar===0));
-          h+=`<div class="row"><span class="lab">${x}${free?' <span class="chip">free R1</span>':''}</span><span class="step"><button data-a="abil" data-v="${k}" data-d="-1" ${ar<=0?'disabled':''}>−</button><output>${ar}</output><button data-a="abil" data-v="${k}" data-d="1" ${step?'':'disabled'}>+</button></span><span class="fx">${ar?AB[x](ar):'Not learned.'}</span></div>`;
+          const maxR=Math.min(MAXR[x]||5,Math.max(r,free?1:0));
+          const uc=unitCost(x),step=ar<maxR&&reqOk(x)&&(l>=uc||(free&&ar===0));
+          h+=`<div class="row"><span class="lab">${x} <span class="chip">${uc}${(MAXR[x]||5)>1?'/rank':' pt'}${EST.includes(x)?' est.':''}</span>${free?' <span class="chip">free R1</span>':''}</span><span class="step"><button data-a="abil" data-v="${k}" data-d="-1" ${ar<=0?'disabled':''}>−</button><output>${ar}</output><button data-a="abil" data-v="${k}" data-d="1" ${step?'':'disabled'}>+</button></span><span class="fx">${ar?AB[x](ar):'Not learned.'}</span></div>`;
         }
         h+='</div>';
       }
@@ -390,7 +418,7 @@ const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
 const sg=n=>n>=0?'+'+n:''+n;
 function PL(){
   const p=S.pl;
-  if(!p.init){p.hpMax=S.species==='korvath'?40:30;p.hp=p.hpMax;p.arc=arcPool();p.init=true}
+  if(!p.init){p.hpMax=(S.species==='korvath'?40:30)+4*abRank('Wounds','Thick Skin');p.hp=p.hpMax;p.arc=arcPool();p.init=true}
   p.arc=Math.min(p.arc,arcPool());p.hp=Math.min(p.hp,p.hpMax);p.ap=Math.min(p.ap,p.apMax);
   return p;
 }
@@ -587,7 +615,7 @@ document.addEventListener('click',e=>{
     case 'career':S.career=v;break;
     case 'skill':{const r=Math.max(0,skillRank(v)+d);if(r)S.skills[v]=r;else delete S.skills[v];
       for(const x of SKILLS[at][v]){const k=abKey(v,x),cap=(S.freeAb===k?Math.max(r,1):r);if(abRank(v,x)>cap){if(cap)S.abil[k]=cap;else delete S.abil[k]}}break}
-    case 'abil':{const n=Math.max(0,(S.abil[v]||0)+d);if(n)S.abil[v]=n;else delete S.abil[v];break}
+    case 'abil':{const n=Math.max(0,(S.abil[v]||0)+d);if(n)S.abil[v]=n;else delete S.abil[v];for(const x in REQ){const q=REQ[x],k2=abKey(q[0],x);if(S.abil[k2]&&abRank(q[0],q[1])<q[2])delete S.abil[k2]}break}
     case 'free':{S.freeAb=S.freeAb===v?'':v;break}
     case 'newchar':{const k={pid:S.pid,pcode:S.pcode,inParty:S.inParty,gm:S.gm};S=Object.assign(blank(),k);break}
     case 'copy_':break;
