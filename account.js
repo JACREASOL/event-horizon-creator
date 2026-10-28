@@ -1,7 +1,7 @@
 /* Email sign-in and a cloud roster of saved characters (users/UID/chars). Also boots Firebase for the rest of the app. */
 (function(){
 const cfg=window.EH_FIREBASE,BASE='https://www.gstatic.com/firebasejs/10.14.1/';
-const KEYS=['name','species','vPrimary','vExtra','fTrait','hFloat','base','career','skills','abil','freeAb','gear','notes','pl'];
+const KEYS=['name','species','vPrimary','vExtra','fTrait','hFloat','base','career','skills','abil','freeAb','gear','notes','pl','portrait'];
 let fb=null,user=null,roster={},rref=null,msg='',email='',confirmId='',timer=null,lastSaved='',booted=false,booting=null;
 const load=src=>new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error(src));document.head.appendChild(s)});
 function boot(){
