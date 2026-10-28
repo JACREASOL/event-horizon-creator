@@ -10,6 +10,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
+<script src="firebase-config.js"></script>
 <style>:root{color-scheme:light dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
 <title>Event Horizon Creator</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -98,12 +99,36 @@ pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px s
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .assump{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin-top:22px;padding-top:10px}
 .assump li{margin:3px 0}
+[hidden]{display:none!important}
+.modes{display:flex;gap:0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.modes button{padding:8px 18px;background:transparent;color:var(--muted);border:0;font:600 13px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.modes button[aria-pressed="true"]{background:var(--arc);color:var(--arc-ink)}
+.result{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border:1px solid var(--line);border-left:5px solid var(--muted);border-radius:5px;padding:10px 14px;margin:0 0 14px}
+.result.good{border-left-color:var(--arc)}.result.bad{border-left-color:var(--bad)}
+.result .big{font:800 24px/1.1 var(--f-display);letter-spacing:.04em;text-transform:uppercase}
+.result p{margin:2px 0;font:13px var(--f-mono);color:var(--muted)}
+.res4{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.rc{border:1px solid var(--line);border-radius:5px;padding:8px 10px;background:var(--bg);display:flex;flex-direction:column;gap:6px}
+.rc span{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.rc b{font:800 26px/1 var(--f-display)}
+.mbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}.mbar i{display:block;height:100%}
+.skgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.sk{display:flex;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);font:500 14px var(--f-body);cursor:pointer;min-width:0;text-align:left}
+.sk b{font:500 13px var(--f-mono);color:var(--arc)}.sk.un{color:var(--muted)}.sk.un b{color:var(--muted)}
+.log{font:12px/1.6 var(--f-mono);color:var(--muted);margin:0;padding-left:16px}
+.testtag{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;background:var(--flag-soft);color:var(--flag);padding:2px 7px;border-radius:3px}
+.pcard{border:1px solid var(--line);border-radius:5px;background:var(--bg);padding:12px;margin:0 0 10px}
+.pcard h4{margin:0;font:800 22px/1.1 var(--f-display);letter-spacing:.04em;text-transform:uppercase}
+.pcard .sub2{font:12px var(--f-mono);color:var(--muted);margin:2px 0 8px}
+.pst{display:grid;grid-template-columns:70px 1fr auto;gap:8px;align-items:center;margin:4px 0;font:12px var(--f-mono)}
+.pst .step button{width:28px;height:28px;font-size:15px}
 @media (prefers-reduced-motion:no-preference){.card,.btn,.pill{transition:border-color .15s,background .15s}}
 </style>
 
 <div class="wrap">
   <header>
     <h1 class="mark">Event Horizon</h1>
+    <div class="modes" id="modes"></div>
     <span class="sub">Character Creator · Core Rules v0.3</span>
   </header>
   <nav class="rail" id="rail" aria-label="Creation steps"></nav>
@@ -167,7 +192,7 @@ const CAREERS=[
 const TIER={1:'Standard',2:'Moderate',3:'Higher',4:'Highest'};
 const STEPS=['Species','Attributes','Career','Skills','Gear','Sheet'];
 
-const blank=()=>({step:0,name:'',species:'',vPrimary:'muscles',vExtra:'charm',fTrait:'regen',hFloat:{},
+const blank=()=>({mode:'build',pcode:'',pid:'',gm:false,inParty:false,pl:{init:false,hp:0,hpMax:0,ap:12,apMax:12,arc:0,favor:0,sil:1,still:0,round:1,uny:false,rapid:false,wi:0,band:1,cover:0,tcover:0,aim:false,pack:false,enemyEv:5,ecn:0,dn:13,mod:0,dmg:3,spend:1,res:null,last:null,log:[]},step:0,name:'',species:'',vPrimary:'muscles',vExtra:'charm',fTrait:'regen',hFloat:{},
   base:Object.fromEntries(ATTRS.map(a=>[a,0])),career:'',skills:{},abil:{},freeAb:'',gear:'',notes:''});
 let S=blank();
 try{const raw=localStorage.getItem('eh-char');if(raw){S=Object.assign(blank(),JSON.parse(raw))}}catch(e){}
@@ -349,11 +374,194 @@ function stepSheet(){
   <ul class="assump"><li>Species bonuses add to attributes, and the total sets your skill-rank pool.</li><li>The 5-point cap applies to the total including species bonus.</li><li>Species Arc bonus (+1 for Korvath) is added to Arc Pool as a flat point.</li><li>HP, Evasion (needs Silhouette) and Digi amounts are not defined in v0.3, so they are blank.</li><li>Read the Room sits under Negotiation. Your rules list it under Charm without a parent skill.</li></ul>`;
 }
 
+
+/* ---------- play mode (all combat numbers are TEST values) ---------- */
+const BANDS=['Engaged','Close','Medium','Long','Extreme'];
+const BANDX=['0–5 ft','6–30 ft','31–90 ft','91–180 ft','181+ ft'];
+const WEAPONS=[
+  {n:'Service Pistol',sk:'Firearms',band:1,dice:[1,8],pistol:true},
+  {n:'Combat Rifle',sk:'Firearms',band:2,dice:[2,6]},
+  {n:'Sniper Rifle',sk:'Firearms',band:3,dice:[2,8]},
+  {n:'Vibro-Blade',sk:'Melee Combat',band:0,dice:[1,10],melee:true}];
+const COVERS=[['None',0],['Partial +1',1],['Half +3',3],['Full +5',5]];
+const DNS=[['Easy 8',8],['Standard 13',13],['Hard 18',18],['Extreme 23',23]];
+const roll=n=>{try{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n+1}catch(e){return Math.floor(Math.random()*n)+1}};
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+const sg=n=>n>=0?'+'+n:''+n;
+function PL(){
+  const p=S.pl;
+  if(!p.init){p.hpMax=S.species==='korvath'?40:30;p.hp=p.hpMax;p.arc=arcPool();p.init=true}
+  p.arc=Math.min(p.arc,arcPool());p.hp=Math.min(p.hp,p.hpMax);p.ap=Math.min(p.ap,p.apMax);
+  return p;
+}
+const sneakB=r=>({1:1,2:1,3:2,4:2,5:3})[r]||0;
+const skillBonus=s=>skillRank(s)+(s==='Stealth'?sneakB(abRank('Stealth','Sneak')):0);
+const evasion=()=>{const p=PL();return Math.max(0,3-p.sil-p.still)};
+const packOn=()=>S.species==='vulkari'&&PL().pack;
+function setRes(h,lines,tone){const p=PL();p.res={h,lines,tone};p.log.unshift(`R${p.round} · ${h}`);p.log=p.log.slice(0,25)}
+function doSkill(label,bonus){
+  const p=PL(),r=roll(20),tot=r+bonus+p.mod,n1=r===1,n20=r===20,ok=n20||(!n1&&tot>=p.dn);
+  const L=[`d20 ${r} ${sg(bonus)} skill${p.mod?` ${sg(p.mod)} mod`:''} = ${tot} vs ${p.dn}`];
+  if(n20)L.push('Natural 20: automatic success.');
+  if(n1){L.push('Natural 1: automatic failure. +1 Divine Favor.');p.favor=Math.min(5,p.favor+1)}
+  else if(tot>=p.dn)L.push(`Beat the target by ${tot-p.dn}.`);else L.push(`Missed by ${p.dn-tot}.`);
+  setRes(`${label}: ${ok?'Success':'Failure'}`,L,ok?'good':'bad');
+}
+function rangePen(){
+  const p=PL(),w=WEAPONS[p.wi],notes=[];let pen=0;
+  if(w.melee){if(p.band!==0)return{blocked:'Melee needs Engaged range (0–5 ft).'};return{pen:0,notes}}
+  if(p.band===0&&!w.pistol){pen-=3;notes.push('Ranged while Engaged −3')}
+  if(p.band>w.band){if(p.band-w.band>=2)return{blocked:`${w.n} cannot reach ${BANDS[p.band]} range.`};pen-=2;notes.push('Beyond optimal range −2')}
+  return{pen,notes};
+}
+function atkBonus(){
+  const p=PL(),w=WEAPONS[p.wi],rp=rangePen();
+  if(rp.blocked)return{blocked:rp.blocked};
+  let b=skillRank(w.sk);const parts=[`${w.sk} ${b}`];
+  if(!w.melee){const ar=abRank('Firearms',BANDS[w.band]+' Range');if(ar){b+=ar;parts.push(`${BANDS[w.band]} spec +${ar}`)}}
+  if(rp.pen){b+=rp.pen}parts.push(...rp.notes);
+  if(p.aim&&!w.melee){b+=1;parts.push('Aimed Shot +1')}
+  if(packOn()){b+=1;parts.push('Pack Tactics +1')}
+  if(p.mod){b+=p.mod;parts.push(`mod ${sg(p.mod)}`)}
+  return{b,parts};
+}
+function doAttack(){
+  const p=PL(),w=WEAPONS[p.wi],ab=atkBonus();
+  if(ab.blocked){setRes('Cannot attack',[ab.blocked],'bad');return}
+  const r=roll(20),tot=r+ab.b,dr=roll(20),dt=dr+p.enemyEv+p.tcover,n1=r===1,n20=r===20;
+  const hit=n20||(!n1&&tot>dt),crit=n20||(p.ecn>=2&&r===p.ecn);
+  const L=[`Attack: d20 ${r} ${sg(ab.b)} = ${tot} (${ab.parts.join(', ')})`,`Defense: d20 ${dr} + ${p.enemyEv}${p.tcover?` + ${p.tcover} cover`:''} = ${dt}`];
+  if(n1){L.push('Natural 1: automatic miss. +1 Divine Favor.');p.favor=Math.min(5,p.favor+1)}
+  if(!n1&&!n20&&tot===dt)L.push('Tie goes to the defender (assumed rule).');
+  if(hit){
+    const [n,s]=w.dice;let rolls;
+    if(crit){rolls=Array(n).fill(s);rolls.push(roll(s))}else rolls=Array.from({length:n},()=>roll(s));
+    const sum=rolls.reduce((a,b)=>a+b,0);
+    L.push(`${crit?'CRITICAL. Dice maxed, plus one extra die. ':''}Damage ${n}d${s}: [${rolls.join(', ')}] = ${sum}`);
+    setRes(`${w.n}: ${crit?'Critical hit':'Hit'} for ${sum}`,L,'good');
+  }else setRes(`${w.n}: Miss`,L,'bad');
+}
+function doDefend(){
+  const p=PL(),r=roll(20),ev=evasion(),tot=r+ev+p.cover+(packOn()?1:0);
+  const L=[`d20 ${r} + ${ev} evasion${p.cover?` + ${p.cover} cover`:''}${packOn()?' + 1 pack':''} = ${tot}`,'Compare to the attacker\'s roll. Higher wins; ties to you (assumed).'];
+  if(r===1){L.push('Natural 1: automatic failure. +1 Divine Favor.');p.favor=Math.min(5,p.favor+1)}
+  if(r===20)L.push('Natural 20: automatic success.');
+  setRes(`Defense ${tot}`,L,'neutral');
+}
+function takeDamage(n){
+  const p=PL();let m;
+  if(p.ap>0){
+    if(n>=p.ap){m=`Armor broke (absorbed ${p.ap}); the rest is negated.`;p.ap=0}
+    else{p.ap-=n;m=`Armor absorbed ${n}. ${p.ap} AP left.`}
+    setRes(`Took ${n} damage`,[m],'neutral');return;
+  }
+  p.hp-=n;m=`${n} damage to HP.`;
+  if(p.hp<=0){
+    if(S.species==='korvath'&&!p.uny){p.uny=true;p.hp=1;m+=' Unyielding: you stay up at 1 HP.'}
+    else{const r=roll(100);p.hp=5;m+=` Down. Regain 5 HP and roll the Injury Table: d100 = ${r}${r===1?' — DEATH':''}. (Table not written yet.)`}
+  }
+  setRes(`Took ${n} damage`,[m],p.hp<=1?'bad':'neutral');
+}
+function spendArc(n){
+  const p=PL();
+  if(n>p.arc){const r=roll(100),had=p.arc;p.arc=0;setRes('Arc Overload',[`Spent ${n} with only ${had} left. Roll the Arc Overload Table: d100 = ${r}. (Table not written yet.)`],'bad')}
+  else{p.arc-=n;setRes(`Spent ${n} Arc`,[`${p.arc} left in pool.`],'neutral')}
+}
+const PMAX={hp:p=>p.hpMax,ap:p=>p.apMax,arc:()=>arcPool(),favor:()=>5,sil:()=>4,still:()=>9,enemyEv:()=>15,ecn:()=>19,mod:()=>5,dmg:()=>99,spend:()=>30,hpMax:()=>200,apMax:()=>60};
+const PMIN={mod:-5,hpMax:1,dmg:1,spend:1};
+function playAct(a,t){
+  const p=PL(),v=t.dataset.v;
+  switch(a){
+    case 'pn':{const k=t.dataset.k,dd=+t.dataset.d;let n=p[k]+dd;if(k==='ecn'&&n===1)n=dd>0?2:0;p[k]=clamp(n,PMIN[k]??0,PMAX[k](p));if(k==='hpMax')p.hp=Math.min(p.hp,p.hpMax);break}
+    case 'pset':p[t.dataset.k]=+v;break;
+    case 'ptog':p[t.dataset.k]=!p[t.dataset.k];break;
+    case 'pskill':{p.last={t:'skill',v};const lab=v;doSkill(lab,v==='Acrobatics'?skillBonus('Athletics')+abRank('Athletics','Acrobatics'):skillBonus(v));break}
+    case 'pattack':p.last={t:'attack'};doAttack();break;
+    case 'pdefend':p.last={t:'defend'};doDefend();break;
+    case 'preroll':{if(p.favor<1||!p.last)break;p.favor--;const l=p.last;
+      if(l.t==='skill')doSkill(l.v,l.v==='Acrobatics'?skillBonus('Athletics')+abRank('Athletics','Acrobatics'):skillBonus(l.v));
+      else if(l.t==='attack')doAttack();else doDefend();
+      p.res.lines.push('Rerolled with 1 Divine Favor.');break}
+    case 'pdmg':takeDamage(p.dmg);break;
+    case 'pheal':{
+      if(v==='breather'){p.hp=Math.min(p.hpMax,p.hp+3);setRes('Breather',['Recovered 3 HP (test value). Stabilize conditions.'],'good')}
+      if(v==='rest'){p.hp=Math.min(p.hpMax,p.hp+10);p.arc=Math.min(arcPool(),p.arc+1);setRes('Rest (1 hour)',['Recovered 10 HP (test value), +1 natural Arc. Clear minor conditions.'],'good')}
+      if(v==='down'){p.hp=p.hpMax;p.arc=Math.min(arcPool(),p.arc+8);p.uny=false;p.rapid=false;setRes('Downtime (8+ hours)',['Full HP, +8 natural Arc, abilities recharged.'],'good')}
+      if(v==='hour'){p.arc=Math.min(arcPool(),p.arc+1);setRes('One hour passes',['+1 natural Arc.'],'neutral')}
+      break}
+    case 'parc':spendArc(p.spend);break;
+    case 'pround':{p.round++;if(v==='moved')p.still=0;else p.still=Math.min(9,p.still+1);
+      const L=[v==='moved'?'You moved, so Evasion resets.':'You stood still: Evasion drops 1.'];
+      if(S.species==='floran'&&S.fTrait==='regen'){p.hp=Math.min(p.hpMax,p.hp+2);L.push('Natural Regeneration: +2 HP.')}
+      setRes(`Round ${p.round}`,L,'neutral');break}
+    case 'prapid':{if(p.rapid)break;p.rapid=true;const r=roll(8);p.hp=Math.min(p.hpMax,p.hp+r);setRes('Rapid regeneration',[`1d8 = ${r} HP recovered.`],'good');break}
+    case 'pnew':p.round=1;p.still=0;p.uny=false;p.rapid=false;setRes('New encounter',['Round reset. Once-per-encounter abilities refreshed.'],'neutral');break;
+    case 'pclear':p.log=[];break;
+  }
+}
+function playView(){
+  const p=PL(),pool=arcPool(),ev=evasion(),w=WEAPONS[p.wi],ab=atkBonus();
+  const bar=(v,m,c)=>`<div class="mbar"><i style="width:${m?Math.round(100*v/m):0}%;background:var(${c})"></i></div>`;
+  const stp=(k,val,min,max)=>`<span class="step"><button data-a="pn" data-k="${k}" data-d="-1" ${val<=min?'disabled':''}>−</button><output>${val}</output><button data-a="pn" data-k="${k}" data-d="1" ${val>=max?'disabled':''}>+</button></span>`;
+  const pills=(k,list,cur)=>`<div class="pillrow">`+list.map(([n,v])=>`<button class="pill" data-a="pset" data-k="${k}" data-v="${v}" aria-pressed="${cur===v}">${n}</button>`).join('')+`</div>`;
+  const res=p.res?`<section class="result ${p.res.tone}" aria-live="polite"><div class="big">${esc(p.res.h)}</div>${p.res.lines.map(l=>`<p>${esc(l)}</p>`).join('')}${p.last&&p.favor>0?`<div class="actions" style="margin:8px 0 0"><button class="btn" data-a="preroll">Reroll the last roll (spend 1 Favor)</button></div>`:''}</section>`
+    :`<section class="result"><div class="big">Ready</div><p>Tap a skill or Attack. Rolls show up here.</p></section>`;
+  let h=`<h2 style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">${esc(S.name)||'Unnamed'} <span class="sub" style="font-weight:400">${(SPECIES[S.species]||{}).name||'No species'} · ${esc(S.career)||'No career'} · Round ${p.round}</span></h2>
+  <p class="lede"><span class="testtag">Test values</span> HP, armor, weapons and healing amounts are made up so you can see the layout.</p>${res}
+  <div class="res4">
+   <div class="rc"><span>HP</span><b>${p.hp}/${p.hpMax}</b>${bar(p.hp,p.hpMax,'--arc')}${stp('hp',p.hp,0,p.hpMax)}</div>
+   <div class="rc"><span>Armor</span><b>${p.ap}/${p.apMax}</b>${bar(p.ap,p.apMax,'--flag')}${stp('ap',p.ap,0,p.apMax)}</div>
+   <div class="rc"><span>Arc Pool</span><b>${p.arc}/${pool}</b>${bar(p.arc,pool,'--arc')}${stp('arc',p.arc,0,pool)}</div>
+   <div class="rc"><span>Divine Favor</span><b>${p.favor}/5</b>${bar(p.favor,5,'--flag')}${stp('favor',p.favor,0,5)}</div>
+   <div class="rc"><span>Evasion</span><b>${ev}</b><span class="meter">Speed 3 − Silhouette ${p.sil} − ${p.still} still</span></div>
+  </div>
+  <h3>Skill rolls</h3>
+  <div class="row"><span class="lab">Difficulty</span></div>${pills('dn',DNS,p.dn)}
+  <div class="row" style="border:0"><span class="lab">Extra modifier</span>${stp('mod',p.mod,-5,5)}</div>
+  <div class="skgrid">`;
+  for(const a of ATTRS)for(const s in SKILLS[a]){
+    h+=`<button class="sk ${skillRank(s)?'':'un'}" data-a="pskill" data-v="${s}"><span>${s}</span><b>${sg(skillBonus(s))}</b></button>`;
+    if(s==='Athletics'&&abRank('Athletics','Acrobatics'))h+=`<button class="sk" data-a="pskill" data-v="Acrobatics"><span>Acrobatics</span><b>${sg(skillBonus('Athletics')+abRank('Athletics','Acrobatics'))}</b></button>`;
+  }
+  h+=`</div><p class="lede" style="font-size:13px;margin-top:6px">Greyed skills are untrained (+0).</p>
+  <h3>Attack</h3>
+  <div class="pillrow">${WEAPONS.map((x,i)=>`<button class="pill" data-a="pset" data-k="wi" data-v="${i}" aria-pressed="${p.wi===i}">${x.n} · ${x.dice[0]}d${x.dice[1]}</button>`).join('')}</div>
+  <div class="row"><span class="lab">Target range<small>Melee needs Engaged</small></span></div>
+  <div class="pillrow">${BANDS.map((b,i)=>`<button class="pill" data-a="pset" data-k="band" data-v="${i}" aria-pressed="${p.band===i}">${b} · ${BANDX[i]}</button>`).join('')}</div>
+  <div class="row"><span class="lab">Target evasion</span>${stp('enemyEv',p.enemyEv,0,15)}</div>
+  <div class="row"><span class="lab">Target cover</span></div>${pills('tcover',COVERS.map(([n,v])=>[n,v]),p.tcover)}
+  <div class="row"><span class="lab">Target critical number<small>0 = none (ECN 2–19)</small></span>${stp('ecn',p.ecn,0,19)}</div>
+  <div class="pillrow" style="margin-top:6px"><button class="pill" data-a="ptog" data-k="aim" aria-pressed="${p.aim}">Aimed Shot +1</button>${S.species==='vulkari'?`<button class="pill" data-a="ptog" data-k="pack" aria-pressed="${p.pack}">Ally within 10 ft (Pack Tactics)</button>`:''}</div>
+  <div class="actions"><button class="btn primary" data-a="pattack" ${ab.blocked?'disabled':''}>Attack ${ab.blocked?'':sg(ab.b)}</button><button class="btn" data-a="pdefend">Defend (${ev}${p.cover?` + ${p.cover}`:''})</button></div>
+  <p class="meter">${ab.blocked?esc(ab.blocked):esc(ab.parts.join(' · '))}</p>
+  <div class="row"><span class="lab">My cover</span></div>${pills('cover',COVERS,p.cover)}
+  <h3>Damage and healing</h3>
+  <div class="row"><span class="lab">Take damage<small>Armor first; a broken hit negates the rest</small></span>${stp('dmg',p.dmg,1,99)}<button class="btn" data-a="pdmg">Apply</button></div>
+  <div class="actions"><button class="btn" data-a="pheal" data-v="breather">Breather</button><button class="btn" data-a="pheal" data-v="rest">Rest</button><button class="btn" data-a="pheal" data-v="down">Downtime</button><button class="btn" data-a="pheal" data-v="hour">+1 hour (Arc)</button></div>
+  <div class="row"><span class="lab">Spend Arc<small>Past your pool triggers Overload</small></span>${stp('spend',p.spend,1,30)}<button class="btn" data-a="parc">Spend</button></div>
+  <h3>Rounds</h3>
+  <div class="actions"><button class="btn" data-a="pround" data-v="moved">Next round · I moved</button><button class="btn" data-a="pround" data-v="still">Next round · stood still</button><button class="btn" data-a="pnew">New encounter</button>${S.species==='floran'&&S.fTrait==='regen'?`<button class="btn" data-a="prapid" ${p.rapid?'disabled':''}>Rapid regen (1d8)</button>`:''}</div>
+  ${S.species==='korvath'?`<p class="meter">Unyielding: ${p.uny?'used this encounter':'ready'}</p>`:''}
+  <h3>Test values</h3>
+  <div class="row"><span class="lab">Max HP</span>${stp('hpMax',p.hpMax,1,200)}</div>
+  <div class="row"><span class="lab">Max armor</span>${stp('apMax',p.apMax,0,60)}</div>
+  <div class="row"><span class="lab">Silhouette</span>${stp('sil',p.sil,0,4)}</div>
+  <h3>Roll log <button class="pill" data-a="pclear" style="padding:3px 8px;font-size:12px">Clear</button></h3>
+  <ul class="log">${p.log.map(l=>`<li>${esc(l)}</li>`).join('')||'<li>Nothing yet.</li>'}</ul>`;
+  return h;
+}
+
 /* ---------- shell ---------- */
 const FNS=[stepSpecies,stepAttrs,stepCareer,stepSkills,stepGear,stepSheet];
 function done(i){return [!!S.species&&(S.species!=='human'||floatLeft()===0),baseSpent()===POINTS,!!S.career,ATTRS.every(a=>left(a)===0||a==='toughness'),!!(S.gear||S.notes),warnings().length===0][i]}
 function render(){
   normalize();save();
+  const nb=S.mode!=='build';
+  if(window.EHParty)EHParty.push();
+  document.getElementById('modes').innerHTML=[['build','Build'],['play','Play']].concat(window.EHParty?[['party','Party']]:[]).map(([k,n])=>`<button data-a="mode" data-v="${k}" aria-pressed="${S.mode===k}">${n}</button>`).join('');
+  document.getElementById('rail').hidden=nb;document.querySelector('.bar').hidden=nb;
+  if(S.mode==='play'){document.getElementById('main').innerHTML=playView();return}
+  if(S.mode==='party'&&window.EHParty){document.getElementById('main').innerHTML=EHParty.view();return}
   document.getElementById('rail').innerHTML=STEPS.map((n,i)=>`<button data-a="go" data-v="${i}" class="${done(i)&&i!==S.step?'done':''}" ${i===S.step?'aria-current="step"':''}><b>${i+1}</b>${n}</button>`).join('');
   document.getElementById('main').innerHTML=FNS[S.step]();
   document.getElementById('back').disabled=S.step===0;
@@ -365,6 +573,7 @@ document.addEventListener('click',e=>{
   const t=e.target.closest('[data-a]');if(!t)return;
   const v=t.dataset.v,d=+t.dataset.d,at=t.dataset.at;
   switch(t.dataset.a){
+    case 'mode':S.mode=v;break;
     case 'go':S.step=+v;break;
     case 'species':if(S.species!==v){S.species=v;S.hFloat={};S.freeAb='';for(const a of ATTRS)if(S.base[a]+0>ATTR_CAP)S.base[a]=ATTR_CAP}break;
     case 'ftrait':S.fTrait=v;break;
@@ -378,12 +587,14 @@ document.addEventListener('click',e=>{
     case 'abil':{const n=Math.max(0,(S.abil[v]||0)+d);if(n)S.abil[v]=n;else delete S.abil[v];break}
     case 'free':{S.freeAb=S.freeAb===v?'':v;break}
     case 'newchar':S=blank();break;
+    case 'copy_':break;
     case 'copy':{const txt=textSheet(),m=document.getElementById('msg');
       const fallback=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById('sheet'));const s=getSelection();s.removeAllRanges();s.addRange(r);m.textContent='Sheet selected. Copy it manually.'};
       try{navigator.clipboard.writeText(txt).then(()=>{m.textContent='Copied.'},fallback)}catch(err){fallback()}
       return}
   }
-  const y=scrollY;render();if(t.dataset.a!=='go')scrollTo(0,y)
+  if(t.dataset.a.startsWith('pty')){if(window.EHParty)EHParty.act(t.dataset.a,t)}else if(/^p[a-z]+$/.test(t.dataset.a))playAct(t.dataset.a,t);
+  const y=scrollY;render();if(t.dataset.a!=='go'&&t.dataset.a!=='mode')scrollTo(0,y);else scrollTo(0,0)
 });
 document.addEventListener('input',e=>{const f=e.target.dataset&&e.target.dataset.f;if(!f)return;S[f]=e.target.value;save();
   if(f==='name'){const h=document.querySelector('main h2');if(h)h.textContent=S.name||'Character sheet';const p=document.getElementById('sheet');if(p)p.textContent=textSheet()}});
@@ -393,4 +604,5 @@ render();
 </script>
 
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
+<script src="party.js"></script>
 </body></html>
