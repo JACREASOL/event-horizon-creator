@@ -558,9 +558,10 @@ function render(){
   normalize();save();
   const nb=S.mode!=='build';
   if(window.EHParty)EHParty.push();
-  document.getElementById('modes').innerHTML=[['build','Build'],['play','Play']].concat(window.EHParty?[['party','Party']]:[]).map(([k,n])=>`<button data-a="mode" data-v="${k}" aria-pressed="${S.mode===k}">${n}</button>`).join('');
+  document.getElementById('modes').innerHTML=[['build','Build'],['play','Play']].concat(window.EHMap?[['map','Map']]:[]).concat(window.EHParty?[['party','Party']]:[]).map(([k,n])=>`<button data-a="mode" data-v="${k}" aria-pressed="${S.mode===k}">${n}</button>`).join('');
   document.getElementById('rail').hidden=nb;document.querySelector('.bar').hidden=nb;
   if(S.mode==='play'){document.getElementById('main').innerHTML=playView();return}
+  if(S.mode==='map'&&window.EHMap){document.getElementById('main').innerHTML=EHMap.view();return}
   if(S.mode==='party'&&window.EHParty){document.getElementById('main').innerHTML=EHParty.view();return}
   document.getElementById('rail').innerHTML=STEPS.map((n,i)=>`<button data-a="go" data-v="${i}" class="${done(i)&&i!==S.step?'done':''}" ${i===S.step?'aria-current="step"':''}><b>${i+1}</b>${n}</button>`).join('');
   document.getElementById('main').innerHTML=FNS[S.step]();
@@ -593,7 +594,7 @@ document.addEventListener('click',e=>{
       try{navigator.clipboard.writeText(txt).then(()=>{m.textContent='Copied.'},fallback)}catch(err){fallback()}
       return}
   }
-  if(t.dataset.a.startsWith('pty')){if(window.EHParty)EHParty.act(t.dataset.a,t)}else if(/^p[a-z]+$/.test(t.dataset.a))playAct(t.dataset.a,t);
+  if(t.dataset.a.startsWith('map')){if(window.EHMap)EHMap.act(t.dataset.a,t)}else if(t.dataset.a.startsWith('pty')){if(window.EHParty)EHParty.act(t.dataset.a,t)}else if(/^p[a-z]+$/.test(t.dataset.a))playAct(t.dataset.a,t);
   const y=scrollY;render();if(t.dataset.a!=='go'&&t.dataset.a!=='mode')scrollTo(0,y);else scrollTo(0,0)
 });
 document.addEventListener('input',e=>{const f=e.target.dataset&&e.target.dataset.f;if(!f)return;S[f]=e.target.value;save();
@@ -604,5 +605,6 @@ render();
 </script>
 
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
+<script src="map.js"></script>
 <script src="party.js"></script>
 </body></html>
