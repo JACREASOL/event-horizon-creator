@@ -44,6 +44,9 @@ function setBg(id,url){
   if(bgref)url?bgref.child(id).set(url):bgref.child(id).remove();
   else try{localStorage.setItem('eh-mapbg',JSON.stringify(bg))}catch(e){msg='Image too big to keep on this device.'}
 }
+const okImg=u=>typeof u==='string'&&/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(u);
+let imgTarget=null;
+['mapbgfile','tokimgfile'].forEach(id=>{if(document.getElementById(id))return;const i=document.createElement('input');i.type='file';i.accept='image/*';i.id=id;i.hidden=true;document.body.appendChild(i)});
 const can=id=>S.gm||id===S.pid;
 function free(x,y){return!Object.values(T()).some(t=>t.x===x&&t.y===y)}
 function ensure(){
@@ -70,7 +73,7 @@ function info(){
   return{d,ft,band,cov};
 }
 function inner(){
-  const{w:W,h:H}=dm(),img=bg[M.active];
+  const{w:W,h:H}=dm(),img=okImg(bg[M.active])?bg[M.active]:'';
   let s=img?`<image href="${img}" x="0" y="0" width="${W*CS}" height="${H*CS}" preserveAspectRatio="none"/>`:'';
   const ln=`style="stroke:var(--line);stroke-width:1;stroke-opacity:${img?.55:1}"`;
   for(let x=0;x<=W;x++)s+=`<line x1="${x*CS}" y1="0" x2="${x*CS}" y2="${H*CS}" ${ln}/>`;
@@ -87,7 +90,7 @@ function inner(){
   for(const id in T()){
     const t=T()[id],fill=t.t==='foe'?'#d9645c':COLS[(t.c||0)%COLS.length],me=id===S.pid;
     const ring=`style="fill:none;stroke:${id===sel?'var(--ink)':me?'var(--arc)':'var(--bg)'};stroke-width:${id===sel?3:me?3:1.5}"`;
-    s+=`<g data-tok="${id}" transform="translate(${t.x*CS},${t.y*CS})" style="cursor:${can(id)?'grab':'pointer'}"><circle cx="${CS/2}" cy="${CS/2}" r="${CS*.4}" fill="${fill}"/>${t.img?`<clipPath id="cp${id}"><circle cx="${CS/2}" cy="${CS/2}" r="${CS*.4}"/></clipPath><image href="${t.img}" x="${CS*.1}" y="${CS*.1}" width="${CS*.8}" height="${CS*.8}" preserveAspectRatio="xMidYMid slice" clip-path="url(#cp${id})" style="pointer-events:none"/>`:`<text x="${CS/2}" y="${CS/2+5}" text-anchor="middle" style="font:800 15px var(--f-body);fill:#0b1117;pointer-events:none">${esc((t.n||'?').slice(0,1).toUpperCase())}</text>`}<circle cx="${CS/2}" cy="${CS/2}" r="${CS*.4}" ${ring}/><text x="${CS/2}" y="${CS-2}" text-anchor="middle" style="font:600 10px var(--f-mono);fill:var(--ink);stroke:var(--bg);stroke-width:3;paint-order:stroke;pointer-events:none">${esc((t.n||'').slice(0,9))}</text></g>`;
+    s+=`<g data-tok="${id}" transform="translate(${t.x*CS},${t.y*CS})" style="cursor:${can(id)?'grab':'pointer'}"><circle cx="${CS/2}" cy="${CS/2}" r="${CS*.4}" fill="${fill}"/>${okImg(t.img)?`<clipPath id="cp${id}"><circle cx="${CS/2}" cy="${CS/2}" r="${CS*.4}"/></clipPath><image href="${t.img}" x="${CS*.1}" y="${CS*.1}" width="${CS*.8}" height="${CS*.8}" preserveAspectRatio="xMidYMid slice" clip-path="url(#cp${id})" style="pointer-events:none"/>`:`<text x="${CS/2}" y="${CS/2+5}" text-anchor="middle" style="font:800 15px var(--f-body);fill:#0b1117;pointer-events:none">${esc((t.n||'?').slice(0,1).toUpperCase())}</text>`}<circle cx="${CS/2}" cy="${CS/2}" r="${CS*.4}" ${ring}/><text x="${CS/2}" y="${CS-2}" text-anchor="middle" style="font:600 10px var(--f-mono);fill:var(--ink);stroke:var(--bg);stroke-width:3;paint-order:stroke;pointer-events:none">${esc((t.n||'').slice(0,9))}</text></g>`;
   }
   return s;
 }
@@ -105,14 +108,13 @@ function view(){
     }else h+=`<div class="sub2">${sel===S.pid?'This is you.':''}</div><div class="actions" style="margin:0">`;
     if(S.gm&&sel!==S.pid)h+=`<button class="btn" data-a="mapdel">Remove token</button>`;
     if(can(sel))h+=`<button class="btn" data-a="maptokimg">${t.img?'Change picture':'Set picture'}</button>${t.img?'<button class="btn" data-a="maptokimgclear">Remove picture</button>':''}`;
-    h+=`</div><input type="file" id="tokimgfile" accept="image/*" hidden></div>`;
+    h+=`</div></div>`;
   }
   h+=`<h3>GM tools</h3><div class="pillrow"><button class="pill" data-a="mapgm" aria-pressed="${!!S.gm}">GM mode</button></div>`;
   if(S.gm){
     h+=`<h3>Maps</h3><div class="pillrow">${ids.map(id=>`<button class="pill" data-a="mapswitch" data-v="${id}" aria-pressed="${id===M.active}">${esc(M.maps[id].n||'Map')}</button>`).join('')}</div>
     <div style="display:flex;gap:8px;margin-top:8px"><input type="text" id="mapname" placeholder="New map name" autocomplete="off" style="flex:1"><button class="btn" data-a="mapnew">Add map</button></div>
     <div class="actions"><button class="btn" data-a="mapbg">${bg[M.active]?'Change background':'Set background image'}</button>${bg[M.active]?'<button class="btn" data-a="mapbgclear">Remove background</button>':''}${ids.length>1?`<button class="btn" data-a="mapkill">${confirmDel?'Tap again to delete this map':'Delete this map'}</button>`:''}</div>
-    <input type="file" id="mapbgfile" accept="image/*" hidden>
     <h3>Map size</h3><div class="row"><span class="lab">Width<small>${W} squares · ${W*5} ft</small></span><span class="step"><button data-a="mapw" data-d="-1">−</button><output>${W}</output><button data-a="mapw" data-d="1">+</button></span></div>
     <div class="row"><span class="lab">Height<small>${H} squares · ${H*5} ft</small></span><span class="step"><button data-a="maph" data-d="-1">−</button><output>${H}</output><button data-a="maph" data-d="1">+</button></span></div>
     <p class="lede" style="font-size:13px;margin:4px 0 0">Resize before adding a background, or the picture will stretch.</p>
@@ -147,7 +149,7 @@ function act(a,t){
   else if(a==='mapzin')zoomAt(1.4,.5,.5);
   else if(a==='mapzout')zoomAt(1/1.4,.5,.5);
   else if(a==='mapzfit'){Z={z:1,x:0,y:0}}
-  else if(a==='maptokimg'){const f=document.getElementById('tokimgfile');if(f)f.click()}
+  else if(a==='maptokimg'){imgTarget=sel;const f=document.getElementById('tokimgfile');if(f)f.click()}
   else if(a==='maptokimgclear'&&sel&&can(sel))setImg(sel,'');
   else if((a==='mapw'||a==='maph')&&S.gm){
     const m=cur(),k=a==='mapw'?'w':'h',lim=k==='w'?[8,40]:[6,30];
@@ -162,9 +164,9 @@ function act(a,t){
   }
 }
 function setImg(id,url){
+  if(id===S.pid)S.portrait=url||'';
   const t=T()[id];if(!t)return;
   if(url)t.img=url;else delete t.img;
-  if(id===S.pid)S.portrait=url||'';
   putTok(id);
 }
 function cellAt(e,svg){const r=svg.getBoundingClientRect(),[x,y,vw,vh]=vb(),{w,h}=dm();return[clampc(Math.floor((x+(e.clientX-r.left)/r.width*vw)/CS),0,w-1),clampc(Math.floor((y+(e.clientY-r.top)/r.height*vh)/CS),0,h-1)]}
@@ -186,8 +188,8 @@ document.addEventListener('change',e=>{
   img.src=u;e.target.value='';
 });
 document.addEventListener('change',e=>{
-  if(!e.target||e.target.id!=='tokimgfile'||!e.target.files||!e.target.files[0]||!sel)return;
-  const f=e.target.files[0],u=URL.createObjectURL(f),img=new Image(),id=sel;
+  if(!e.target||e.target.id!=='tokimgfile'||!e.target.files||!e.target.files[0]||!imgTarget)return;
+  const f=e.target.files[0],u=URL.createObjectURL(f),img=new Image(),id=imgTarget;
   img.onload=()=>{
     const c=document.createElement('canvas');c.width=c.height=96;
     const g=c.getContext('2d'),sc=Math.max(96/img.width,96/img.height),w=img.width*sc,h=img.height*sc;
@@ -248,6 +250,6 @@ function end(e){
 }
 document.addEventListener('pointerup',end);
 document.addEventListener('pointercancel',end);
-window.EHMap={view,act};
+window.EHMap={view,act,pickPortrait:()=>{imgTarget=S.pid;const f=document.getElementById('tokimgfile');if(f)f.click()}};
 render();
 })();
