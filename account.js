@@ -23,7 +23,9 @@ function watch(){
   }
 }
 const pack=()=>{const o={};KEYS.forEach(k=>o[k]=S[k]);return o};
-const meta=()=>({name:S.name||'Unnamed',species:(SPECIES[S.species]||{}).name||'',career:S.career||''});
+const meta=()=>({name:S.name||'Unnamed',species:(SPECIES[S.species]||{}).name||'',career:S.career||'',img:S.portrait||''});
+const okImg=u=>typeof u==='string'&&/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(u);
+const av=u=>okImg(u)?`<img src="${u}" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:8px">`:'';
 function saveChar(asNew){
   if(!user||!rref){msg='Sign in first.';return}
   if(!(S.name||'').trim()){msg='Name your character on the Sheet step first.';return}
@@ -85,13 +87,13 @@ function view(){
   let h=`<h2>Account</h2><p class="lede">Signed in as <b>${esc(user.email||'')}</b>.</p>
   <div class="actions" style="margin-top:0"><button class="btn" data-a="acctout">Sign out</button></div>
   <h3>Current character</h3>
-  <p class="meter">${esc(S.name||'Unnamed')} · ${S.cid&&roster[S.cid]?'saved, changes sync automatically':'not saved yet'}</p>
-  <div class="actions" style="margin-top:0"><button class="btn primary" data-a="acctsave">${S.cid&&roster[S.cid]?'Save now':'Save to my characters'}</button>${S.cid&&roster[S.cid]?'<button class="btn" data-a="acctsavenew">Save as a copy</button>':''}<button class="btn" data-a="acctnew">New character</button></div>${m}
+  <p class="meter">${av(S.portrait)}${esc(S.name||'Unnamed')} · ${S.cid&&roster[S.cid]?'saved, changes sync automatically':'not saved yet'}</p>
+  <div class="actions" style="margin-top:0"><button class="btn primary" data-a="acctsave">${S.cid&&roster[S.cid]?'Save now':'Save to my characters'}</button>${S.cid&&roster[S.cid]?'<button class="btn" data-a="acctsavenew">Save as a copy</button>':''}<button class="btn" data-a="acctnew">New character</button><button class="btn" data-a="acctportrait">${okImg(S.portrait)?'Change portrait':'Set portrait'}</button></div>${m}
   <h3>My characters</h3>`;
   if(!ids.length)h+=`<p class="lede">Nothing saved yet.</p>`;
   for(const id of ids){
     const r=roster[id];
-    h+=`<div class="pcard"><h4>${esc(r.name||'Unnamed')}${id===S.cid?' <span class="chip">open</span>':''}</h4><div class="sub2">${esc([r.species,r.career].filter(Boolean).join(' · ')||'No species or career yet')}</div>
+    h+=`<div class="pcard"><h4>${av(r.img)}${esc(r.name||'Unnamed')}${id===S.cid?' <span class="chip">open</span>':''}</h4><div class="sub2">${esc([r.species,r.career].filter(Boolean).join(' · ')||'No species or career yet')}</div>
     <div class="actions" style="margin:0"><button class="btn" data-a="acctload" data-id="${id}">Open</button><button class="btn" data-a="acctdel" data-id="${id}">${confirmId===id?'Tap again to delete':'Delete'}</button></div></div>`;
   }
   return h;
@@ -106,6 +108,7 @@ function act(a,t){
   else if(a==='acctsave')saveChar(false);
   else if(a==='acctsavenew')saveChar(true);
   else if(a==='acctnew')newChar();
+  else if(a==='acctportrait'){if(window.EHMap&&EHMap.pickPortrait)EHMap.pickPortrait()}
   else if(a==='acctload')loadChar(id);
   else if(a==='acctdel'){
     if(confirmId===id){rref&&rref.child(id).remove();if(S.cid===id)S.cid='';confirmId=''}else confirmId=id;
