@@ -92,7 +92,7 @@ function act(a,t){
     root.child(id+'/live/'+k).transaction(v=>clamp((v||0)+dd,0,mx));
   }
 }
-window.EHParty={view,act,push};
+window.EHParty={view,act,push,ref:()=>joined&&db?db.ref('parties/'+joined):null};
 if(!S.pid)S.pid='p'+Math.random().toString(36).slice(2,10);
 if(cfg&&S.inParty&&S.pcode)join(clean(S.pcode));else render();
 })();
