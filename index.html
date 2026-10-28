@@ -100,8 +100,8 @@ pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px s
 .assump{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin-top:22px;padding-top:10px}
 .assump li{margin:3px 0}
 [hidden]{display:none!important}
-.modes{display:flex;gap:0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
-.modes button{padding:8px 18px;background:transparent;color:var(--muted);border:0;font:600 13px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.modes{display:flex;gap:0;border:1px solid var(--line);border-radius:4px;overflow-x:auto;max-width:100%}
+.modes button{padding:8px 11px;background:transparent;color:var(--muted);border:0;font:600 13px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 .modes button[aria-pressed="true"]{background:var(--arc);color:var(--arc-ink)}
 .result{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border:1px solid var(--line);border-left:5px solid var(--muted);border-radius:5px;padding:10px 14px;margin:0 0 14px}
 .result.good{border-left-color:var(--arc)}.result.bad{border-left-color:var(--bad)}
@@ -558,9 +558,11 @@ function render(){
   normalize();save();
   const nb=S.mode!=='build';
   if(window.EHParty)EHParty.push();
-  document.getElementById('modes').innerHTML=[['build','Build'],['play','Play']].concat(window.EHMap?[['map','Map']]:[]).concat(window.EHParty?[['party','Party']]:[]).map(([k,n])=>`<button data-a="mode" data-v="${k}" aria-pressed="${S.mode===k}">${n}</button>`).join('');
+  if(window.EHAcct)EHAcct.push();
+  document.getElementById('modes').innerHTML=[['build','Build'],['play','Play']].concat(window.EHMap?[['map','Map']]:[]).concat(window.EHParty?[['party','Party']]:[]).concat(window.EHAcct?[['acct','Account']]:[]).map(([k,n])=>`<button data-a="mode" data-v="${k}" aria-pressed="${S.mode===k}">${n}</button>`).join('');
   document.getElementById('rail').hidden=nb;document.querySelector('.bar').hidden=nb;
   if(S.mode==='play'){document.getElementById('main').innerHTML=playView();return}
+  if(S.mode==='acct'&&window.EHAcct){document.getElementById('main').innerHTML=EHAcct.view();return}
   if(S.mode==='map'&&window.EHMap){document.getElementById('main').innerHTML=EHMap.view();return}
   if(S.mode==='party'&&window.EHParty){document.getElementById('main').innerHTML=EHParty.view();return}
   document.getElementById('rail').innerHTML=STEPS.map((n,i)=>`<button data-a="go" data-v="${i}" class="${done(i)&&i!==S.step?'done':''}" ${i===S.step?'aria-current="step"':''}><b>${i+1}</b>${n}</button>`).join('');
@@ -587,14 +589,14 @@ document.addEventListener('click',e=>{
       for(const x of SKILLS[at][v]){const k=abKey(v,x),cap=(S.freeAb===k?Math.max(r,1):r);if(abRank(v,x)>cap){if(cap)S.abil[k]=cap;else delete S.abil[k]}}break}
     case 'abil':{const n=Math.max(0,(S.abil[v]||0)+d);if(n)S.abil[v]=n;else delete S.abil[v];break}
     case 'free':{S.freeAb=S.freeAb===v?'':v;break}
-    case 'newchar':S=blank();break;
+    case 'newchar':{const k={pid:S.pid,pcode:S.pcode,inParty:S.inParty,gm:S.gm};S=Object.assign(blank(),k);break}
     case 'copy_':break;
     case 'copy':{const txt=textSheet(),m=document.getElementById('msg');
       const fallback=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById('sheet'));const s=getSelection();s.removeAllRanges();s.addRange(r);m.textContent='Sheet selected. Copy it manually.'};
       try{navigator.clipboard.writeText(txt).then(()=>{m.textContent='Copied.'},fallback)}catch(err){fallback()}
       return}
   }
-  if(t.dataset.a.startsWith('map')){if(window.EHMap)EHMap.act(t.dataset.a,t)}else if(t.dataset.a.startsWith('pty')){if(window.EHParty)EHParty.act(t.dataset.a,t)}else if(/^p[a-z]+$/.test(t.dataset.a))playAct(t.dataset.a,t);
+  if(t.dataset.a.startsWith('acct')){if(window.EHAcct)EHAcct.act(t.dataset.a,t)}else if(t.dataset.a.startsWith('map')){if(window.EHMap)EHMap.act(t.dataset.a,t)}else if(t.dataset.a.startsWith('pty')){if(window.EHParty)EHParty.act(t.dataset.a,t)}else if(/^p[a-z]+$/.test(t.dataset.a))playAct(t.dataset.a,t);
   const y=scrollY;render();if(t.dataset.a!=='go'&&t.dataset.a!=='mode')scrollTo(0,y);else scrollTo(0,0)
 });
 document.addEventListener('input',e=>{const f=e.target.dataset&&e.target.dataset.f;if(!f)return;S[f]=e.target.value;save();
@@ -605,6 +607,7 @@ render();
 </script>
 
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
+<script src="account.js"></script>
 <script src="map.js"></script>
 <script src="party.js"></script>
 </body></html>
