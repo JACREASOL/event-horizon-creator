@@ -144,84 +144,123 @@ pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px s
 const ATTRS=['muscles','accuracy','knowledge','memory','charm','toughness'];
 const AL={muscles:'Muscles',accuracy:'Accuracy',knowledge:'Knowledge',memory:'Memory',charm:'Charm',toughness:'Toughness'};
 const ADESC={muscles:'Physical power and melee force',accuracy:'Precision and aim',knowledge:'Education, tech, Arc theory',memory:'Wisdom, perception, recall',charm:'Social skill and presence',toughness:'Endurance and resilience'};
-const POINTS=10, ATTR_CAP=5, ABILITY_RANK_COST=1; /* ability costs are placeholders until the rulebook defines them */
+const POINTS=10, ATTR_CAP=5;
 const SKILLS={
-  muscles:{'Athletics':['Heavy Lifting','Acrobatics','Unstoppable'],'Melee Combat':['Grapple','Disarm','Brutal Strike','Relentless','Juggernaut','Killing Blow','Rampage','Melee Weapon Familiarity']},
-  accuracy:{'Firearms':['Close Range','Medium Range','Long Range','Weapon Familiarity','Weapon Mastery','Suppressing Fire','Apex Predator'],'Long Range':['Patient','Weak Point','Long Shot','Controlled Breathing'],'Throwing':[],'Sleight of Hand':[],'Stealth':['Sneak']},
-  knowledge:{'Engineering':[],'Hacking':[],'Medical':[],'Investigation':[]},
-  memory:{'Eavesdropping':['Eavesdropping'],'Survival':[],'History':[],'Perception':['Combat Awareness'],'Navigation':[]},
-  charm:{'Negotiation':['Read the Room'],'Con':[],'Deception':[],'Leadership':['Battlefield Discipline'],'Performance':[]},
-  toughness:{'Wounds':['Battle Hardened','Second Wind','Iron Will','Thick Skin']}
+  muscles:{'Melee Combat':[],'Athletics':[],'Intimidation':[],'Stamina':[]},
+  accuracy:{'Firearms':[],'Throwing':[],'Stealth':[],'Sleight of Hand':[],'Piloting':[]},
+  knowledge:{'Engineering':[],'Hacking':[],'Medical':[],'Investigation':[],'Arc Use':[]},
+  memory:{'Perception':[],'Lore':[],'Navigation':[],'Tactics':[],'Survival':[]},
+  charm:{'Persuasion':[],'Deception':[],'Negotiation':[],'Performance':[],'Leadership':[]},
+  toughness:{'Endurance':[],'Resistance':[],'Composure':[]}
 };
-const SNEAK={1:'+1 to Sneak checks. Move quietly.',2:'+1. Move at a faster pace while staying stealthy.',3:'+2 to Sneak checks.',4:'+2. Gear no longer penalizes sneaking.',5:'+3 to Sneak checks.'};
-/* cost per rank, max rank, prerequisites. Costs come from the abilities chat; ones marked EST are placeholders from the old Soldier list. */
-const COST={'Brutal Strike':1,'Relentless':1,'Juggernaut':2,'Killing Blow':5,'Rampage':5,'Melee Weapon Familiarity':5,'Unstoppable':2,'Weapon Familiarity':5,'Weapon Mastery':5,'Suppressing Fire':2,'Apex Predator':5,'Patient':1,'Weak Point':1,'Long Shot':1,'Controlled Breathing':2,'Combat Awareness':5,'Battlefield Discipline':2,'Battle Hardened':1,'Second Wind':2,'Iron Will':3,'Thick Skin':1};
-const EST=['Brutal Strike','Patient','Weak Point','Long Shot','Controlled Breathing','Battle Hardened','Second Wind','Iron Will','Thick Skin'];
-const MAXR={'Relentless':1,'Juggernaut':1,'Killing Blow':1,'Rampage':1,'Melee Weapon Familiarity':1,'Unstoppable':1,'Weapon Familiarity':1,'Weapon Mastery':1,'Suppressing Fire':1,'Apex Predator':1,'Patient':1,'Weak Point':1,'Long Shot':1,'Controlled Breathing':1,'Combat Awareness':1,'Battlefield Discipline':1,'Second Wind':1,'Iron Will':1,'Thick Skin':3};
-const REQ={'Weapon Mastery':['Firearms','Weapon Familiarity',1],'Iron Will':['Wounds','Battle Hardened',3]};
-const unitCost=x=>COST[x]||ABILITY_RANK_COST;
-const reqOk=x=>{const q=REQ[x];return !q||abRank(q[0],q[1])>=q[2]};
-const AB={
-  'Brutal Strike':r=>`Once per turn, a melee hit also applies Weakened. ${r} use${r>1?'s':''} per combat.`,
-  'Relentless':()=>'After dropping an enemy to 0 HP, move up to 10 ft as a free action.',
-  'Juggernaut':()=>'When you Sprint, move through enemies; each takes 1d6 damage.',
-  'Killing Blow':()=>'A melee critical hit forces the target to roll on the injury table regardless of remaining HP.',
-  'Rampage':()=>'Once per combat, make two melee attacks as one Action.',
-  'Melee Weapon Familiarity':()=>'Pick one melee weapon type; your attacks with it bypass armor on a natural 19+.',
-  'Unstoppable':()=>'Immune to Slowed. Difficult terrain costs no extra movement.',
-  'Weapon Familiarity':()=>'Pick one weapon type; ignore range penalties with it.',
-  'Weapon Mastery':()=>'Needs Weapon Familiarity. Pick one weapon type; its attacks deal one extra damage die.',
-  'Suppressing Fire':()=>'Forgo your attack to apply Suppressed to all enemies in a 30 ft cone until your next turn.',
-  'Apex Predator':()=>'Enemies Engaged with you get no cover bonus to Evasion.',
-  'Patient':()=>'If you did not move last turn, +1 to attack rolls this turn. Stacks with Steady Aim.',
-  'Weak Point':()=>'Once per combat, one attack that hits ignores all AP.',
-  'Long Shot':()=>'Maximum range extends one range band.',
-  'Controlled Breathing':()=>'Once per turn, reroll one attack die and take the higher.',
-  'Combat Awareness':()=>'Never surprised. Always act in the first round even if ambushed.',
-  'Battlefield Discipline':()=>'Allies within Medium range who can see or hear you are immune to Panicked.',
-  'Battle Hardened':r=>`+${5*r} to injury table rolls.`,
-  'Second Wind':()=>'Once per combat, free action: recover 1d8 HP.',
-  'Iron Will':()=>'Needs Battle Hardened rank 3. Once per session, treat one injury table roll as 76–100.',
-  'Thick Skin':r=>`+${4*r} maximum HP. The only way to raise max HP.`,
-  'Heavy Lifting':r=>`Lift about ${150+50*(r-1)} lbs. without a check.`,
-  'Acrobatics':r=>`+${r} to Acrobatics rolls.`,
-  'Grapple':r=>`Attack vs. Defense at +${r}. On success the target is restrained until they break free.`,
-  'Disarm':r=>`Attack vs. Defense. Success knocks the weapon loose; a strong success may let you seize it. (Rank 1+; rank scaling not yet defined.)`,
-  'Close Range':r=>`+${r} Accuracy with weapons suited to 6–30 ft.`,
-  'Medium Range':r=>`+${r} Accuracy with weapons suited to 31–90 ft.`,
-  'Long Range':r=>`+${r} Accuracy with weapons suited to 91–180 ft.`,
-  'Sneak':r=>SNEAK[r],
-  'Eavesdropping':r=>`Listen through barriers or at a distance. Rank ${r} improves range and clarity.`,
-  'Read the Room':r=>`Insight into a person or place. +${r} on a following Negotiation or Con check against them.`
+const SKDESC={'Melee Combat':'Melee attacks, grapples','Athletics':'Climb, jump, lift','Intimidation':'Physical threats','Stamina':'Push through fatigue','Firearms':'Ranged attacks','Throwing':'Grenades, thrown weapons','Stealth':'Sneak, hide','Sleight of Hand':'Fine hand work','Piloting':'Ships and vehicles','Engineering':'Repair, build','Hacking':'Systems, locks, drones','Medical':'Heal, stabilize','Investigation':'Clues, research','Arc Use':'Arc abilities','Perception':'Notice things','Lore':'History, culture','Navigation':'Routes, star charts','Tactics':'Battle sense','Survival':'Wild, tracking','Persuasion':'Convince','Deception':'Lie, bluff','Negotiation':'Deals, trade','Performance':'Entertain','Leadership':'Command, morale','Endurance':'Long exertion','Resistance':'Toxins, disease','Composure':'Stay calm'};
+const CHARMSK=['Persuasion','Deception','Negotiation','Performance','Leadership'];
+/* Career abilities from v0.4. [name, required skill rank, effect]. Free for the first playtest. */
+const CAREER_AB={
+ 'Soldier':{label:'Firearms / Melee Combat / Tactics',sk:['Firearms','Melee Combat','Tactics'],list:[
+  ['Suppressing Fire',1,'Lay down fire in a cone or line. Enemies in the area make an Evasion roll or are Pinned on their next turn.'],
+  ['Quick Draw',1,'Draw and fire in the same action. No action cost to draw a weapon.'],
+  ['Covering Fire',1,'Use your action to protect an ally moving through open ground. They gain +2 Evasion until the start of your next turn.'],
+  ['Controlled Burst',2,'Fire 3 shots as one action. Each hit deals weapon damage; critical on 18+. Costs double ammo.'],
+  ['Called Shot',2,'Declare a body part before rolling. On hit: head (-2 to all rolls for 1 turn), legs (Slowed), arms (disarm or -1 attack).'],
+  ['Overwatch',2,'Hold your action. Free attack against any enemy that moves into your line of sight this turn.'],
+  ['Breach and Clear',3,'When entering a room, you and one ally may act before any enemy inside can react.'],
+  ['Suppression Expertise',3,'Suppressing Fire now Pins all enemies in the area, not just those who fail the Evasion roll.'],
+  ['Combat Reflexes',3,'Once per round, when an ally within 10 ft is attacked, make a free attack against the attacker if in range.'],
+  ['Precision Strike',3,'Once per encounter, deal maximum damage on a hit. The hit lands automatically if you are within range.'],
+  ['Grenade Mastery',4,'Throw grenades as a free action once per turn. Redirect a grenade mid-air (opposed Accuracy roll).'],
+  ['Tactical Retreat',4,'Disengage without provoking attacks of opportunity. Move up to half your Speed and fire one shot.'],
+  ['Steel Discipline',4,'Immune to Panicked. Allies within 10 ft gain +1 to fear and morale rolls.'],
+  ['Killzone',5,'Once per encounter, designate a 20 ft area. Any enemy entering it this turn is automatically hit for weapon damage.'],
+  ['Last Stand',5,'At 10 HP or below: +2 to attack rolls, and you cannot be Slowed or Pinned until the start of your next turn.'],
+  ['Squad Command',5,'As an action, give two allies a free Move. They also make one free attack each if already in range.']]},
+ 'Medic':{label:'Medical',sk:['Medical'],list:[
+  ['Triage',1,'Stabilize a 0 HP ally as a Move action (normally a full Action).'],
+  ['Combat Stim',1,'Inject an ally: +2 Speed and +1 to rolls for 2 turns. Crash: -1 to rolls for 1 turn after.'],
+  ['Field Surgery',2,'Spend 2 actions and a Medkit to restore 2d6 HP to an ally. Once per Rest per patient.'],
+  ['Toxin Purge',2,'Clear one Poisoned or Toxic condition from a target. Requires a Medkit.'],
+  ['Advanced Triage',3,'Stabilize any number of 0 HP allies in your line of sight as one action.']]},
+ 'Bounty Hunter':{label:'Firearms / Stealth / Perception',sk:['Firearms','Stealth','Perception'],list:[
+  ['Mark',1,'Designate a target as your Mark: +1 to all rolls against them until captured or dead.'],
+  ['Tracker',1,'Follow a target\'s trail through any environment. Roll Memory + Perception; difficulty from time elapsed and conditions.'],
+  ['Capture Specialist',2,'Non-lethal takedown on a Prone or Slowed target without a roll. They are Restrained.'],
+  ['Bounty Intel',2,'Once per session, learn a target\'s current location, known aliases, or a weakness.'],
+  ['Relentless',3,'Your Mark cannot benefit from Stealth or Invisibility against you while you pursue them.']]},
+ 'Hacker':{label:'Hacking',sk:['Hacking'],note:'Uses a Bandwidth pool (never HP). Needs a Hacking Rig (200 Digi).',list:[
+  ['Ghost Protocol',1,'Mask your signal. While active, hacks cannot be traced to your location. Costs 1 Bandwidth.'],
+  ['System Probe',1,'Scan a connected network or device. Learn its systems and security rating before attacking.'],
+  ['Lockpick',2,'Crack a door, terminal, or lock without a Ghost Spike. Roll Hacking vs. security rating.'],
+  ['Bandwidth Spike',2,'Spend 3 Bandwidth for +3 to your next Hacking roll. Can be used reactively.'],
+  ['System Crash',3,'Shut down a drone, turret, security door, or vehicle for 2 turns. Costs 4 Bandwidth.']]},
+ 'Smuggler':{label:'Charm / Stealth / Piloting',sk:CHARMSK.concat(['Stealth','Piloting']),list:[
+  ['Fast Talk',1,'Roll Charm vs. their Memory. On success a guard or official waves you through without searching you or your cargo.'],
+  ['Hidden Compartment',1,'Your ship or vehicle has a concealed compartment. Searching it needs a Hard (18) Perception check. Passive.'],
+  ['Black Market Contact',1,'Once per session, source restricted gear or information. The GM sets availability and price.'],
+  ['Slippery',2,'+2 to all rolls to evade, hide, or outmaneuver a pursuer for the duration of a chase.'],
+  ['Forged Papers',2,'Produce false ID, manifests, or permits. Materials cost TBD. Inspectors roll Memory at Hard (18) to detect it.'],
+  ['Ghost Run',3,'Once per session, your ship goes dark: no transponder, no emissions, undetectable by sensors for 10 minutes. Cannot fire weapons.']]}
 };
 const SPECIES={
-  korvath:{name:'Korvath',tag:'Dreadknights of volcanic Kharos',fixed:{toughness:2,muscles:1},arc:1,
-    flag:'Korvath is intentionally above the standard power baseline (4 bonus points vs. 3). Not in the species-abilities file.',
-    traits:[['Unyielding','Once per encounter, when reduced to 0 HP, stay standing at 1 HP. Resets on long rest.'],['Hardened Hide','Natural scales add to Armor or reduce damage from minor attacks.'],['Burden Bearer','Bonus when resisting fear, intimidation, or forced retreat or surrender.']]},
-  floran:{name:'Floran',tag:'Plant-fungal-animal life of Viridia',fixed:{charm:1,toughness:1,memory:1},
-    choose:[['regen','Natural Regeneration','Recover 2 HP at the start of each turn in combat. Once per combat, as a free action, recover 1d8 HP. Mild injuries resolve without a Breather.'],['symbiotic','Symbiotic Biology','Immune to Weakened from toxic atmospheres or poison. +3 to resist disease. As an Action, release spores in a 15 ft radius: enemies pass a Standard check or are Blinded until the end of their next turn.']],
-    traits:[]},
-  human:{name:'Human',tag:'The wildcard species',float:5,
-    traits:[['Adaptable','5 floating attribute bonus points instead of the standard 3. Once per session, reroll one failed skill roll and take the higher. One free rank-1 ability of your choice.']],
-    flag:'5 floating points + free ability + reroll is a lot of flexibility next to the 3 fixed points others get. Watch in playtest.'},
-  shadara:{name:'Shadara',tag:'"The unseen truth is often the strongest."',fixed:{accuracy:2,knowledge:1},
-    traits:[['Dark Vision','See clearly in dim light and darkness. Movement makes no sound.'],['Keen Observer','Once per long rest, the GM reveals one hidden truth (enemy, lie, trap, weakness). No roll.'],['Shadow Step','Free action: teleport up to Speed × 10 ft to dim light or darkness you can see. Three uses per Rest.']],
-    flag:'Shadow Step is a free action on top of normal movement. Flagged for playtest in your file.'},
-  tendrix:{name:'Tendrix',tag:'Formerly Podchephila',fixed:{knowledge:2,memory:1},
-    traits:[['Many Hands','Wield two-handed items as one-handed. Interact with two objects as a single action. +2 to Technology rolls with tools, repairs, or delicate work.'],['Adaptive Camouflage','Free action: +3 to Stealth while stationary. Moving breaks it.'],['Amphibious','Breathe air and water with no limit.']],
-    flag:'Many Hands stacks several strong effects in one trait. Flagged for playtest in your file.'},
-  vulkari:{name:'Vulkari',tag:'Wolf-like pack hunters',vulkari:true,
-    traits:[['Pack Tactics','With an ally within 10 ft: +1 to attack rolls and +1 to defense.'],['Keen Senses','+1d6 to Perception checks using smell or hearing.']],
-    flag:'Pack Tactics gives a flat +1 attack and +1 defense, bigger than a single ability rank. Worth watching on a d20 with 5-point difficulty steps.'}
+  human:{name:'Human',tag:'The wildcard species',float:2,spd:3,sil:1,
+    traits:[['Adaptive','Once per Rest, choose a skill. Gain +1 to it for the rest of the day.'],['Relentless Drive','At 10 HP or below, gain +1 to all rolls until Rested.'],['Cultural Memory','Once per session, claim a contact or familiarity with a location.'],['Unshielded Grit','No natural Arc sensitivity means no overload risk. Can hold Arc Cells indefinitely.'],['Fast Learner','One extra Skill Rank when leveling up.']],
+    flag:'No Arc bonus, but +2 floating attributes and five flexible traits. Fast Learner depends on a leveling rule that does not exist yet.'},
+  korvath:{name:'Korvath',tag:'Dreadknights of volcanic Kharos',fixed:{toughness:2,muscles:1},arc:1,spd:3,sil:2,
+    traits:[['Unyielding','Once per encounter, at 0 HP, stay standing with 1 HP instead.'],['Hardened Hide','Natural scales: +1 AP equivalent against small arms.'],['Burden Bearer','+2 vs. fear, intimidation, or forced retreat or surrender rolls.'],['Dreadknight\'s Oath','Once per session, name a Sworn Enemy: +1 to all rolls against them for the session.'],['Ancient Blood','Once per Rest, ignore one status condition for 1 turn.']],
+    flag:'Silhouette 2 lowers Evasion by 1 versus most species, which offsets some of the Toughness lead. Unyielding plus 20 HP is strong.'},
+  floran:{name:'Floran',tag:'Plant-fungal-animal life of Viridia',fixed:{toughness:2,knowledge:1},arc:1,spd:3,sil:1,
+    traits:[['Natural Regeneration','Once per encounter, recover 1d4 HP.'],['Symbiotic Biology','Resistance to natural toxins, diseases, and environmental hazards. Advantage on related rolls.'],['Photosynthetic Sustenance','With enough light, needs far less food. Counts as Resting in direct sunlight.'],['Spore Mapping (Arc)','Map surroundings: layout and life signs in range. Costs 2 Arc.'],['Blinding Spore Cloud (Arc)','-2 to all rolls for affected targets for 2 turns. Costs 3 Arc.']],
+    flag:'Counts as Resting in sunlight with no cap. That could skip the Rest tier outdoors.'},
+  kongari:{name:'Kongari',tag:'Traders, fixers, diplomats',fixed:{charm:2,memory:1,knowledge:1},spd:3,sil:1,
+    traits:[['Networked','Once per session, invoke a contact: the GM gives a name, location, and one piece of information.'],['Silver Tongue','Once per scene, reroll a failed Persuasion or Deception roll.'],['Read Intentions','Memory roll vs. target\'s Charm. On success, know if they are lying.'],['Trade Savvy','Prices for goods and services are always 10% lower.'],['Diplomatic Immunity','Once per session, de-escalate a hostile encounter in a formal setting without a roll.']],
+    flag:'Four social traits and a 10% discount. No Arc bonus, so they trail the others in Arc Pool.'},
+  shadara:{name:'Shadara',tag:'Shifting infiltrators',fixed:{accuracy:2,charm:1},arc:1,spd:3.5,sil:1,
+    traits:[['Adaptive Camouflage','+3 to Stealth checks while stationary.'],['EM Pulse (Arc)','Disrupt electronics within 10 ft for 1 turn. Costs 2 Arc.'],['Shadow Step','Move up to 15 ft without triggering Evasion decay. Once per turn.'],['Threat Sense','Detect hostile intent within 30 ft. Cannot be surprised while conscious.'],['Ghost Form (Arc)','Partially intangible for 1 turn. Non-magical attacks have a 50% miss chance. Costs 4 Arc.']],
+    flag:'Ghost Form halves incoming hits for 4 Arc, and Threat Sense plus Shadow Step covers most Evasion decay. Watch it. "Non-magical" is a leftover term.'},
+  tendrix:{name:'Tendrix',tag:'Formerly Podchephila',fixed:{knowledge:2,memory:1},arc:1,spd:3,sil:1,swim:4,
+    traits:[['Dual Breathing','Breathe underwater indefinitely. No drowning risk.'],['Aquatic Agility','Swim Speed 40 ft. No penalties in water.'],['Arc Precision','Reduce the Arc cost of any ability by 1 (minimum 1). Passive.'],['Mental Shielding','+2 vs. psychic, Arc-based mental intrusion, and fear effects.'],['Ink Cloud (Arc)','15 ft radius, blocks line of sight for 2 turns. Can Poison targets inside. Costs 2 Arc.']],
+    flag:'Arc Precision is a permanent discount on every Arc ability, and Tendrix also get the largest Knowledge bonus.'},
+  asteri:{name:'Asteri',tag:'Entertainers and merchants of Thal',fixed:{charm:2,accuracy:1,memory:1},spd:2,sil:0,swim:4,
+    traits:[['Dual Breathing','Breathe underwater indefinitely.'],['Limb Regrowth','Regrow a lost limb over 1 Downtime. Cannot be permanently dismembered.'],['Many Appendages','Hold and operate multiple items at once. No off-hand penalty.'],['Crowd Favorite','+2 to Performance and Persuasion in public or social settings.'],['Flexible Form','Fit through spaces that look too small. No roll unless truly impossible.']],
+    flag:'Silhouette 0 and Speed 2 give Evasion 2, the same as a human. Many Appendages has no cap on a second attack yet.'}
 };
 const CAREERS=[
   ['Merchant',1],['Scholar',1],['Medic',1],['Pilot',2],['Engineer',2],['Investigator',2],
-  ['Soldier',3],['Bounty Hunter',3],['Smuggler',3],['Dreadknight',4],['Black-market Operative',4]];
-const TIER={1:'Standard',2:'Moderate',3:'Higher',4:'Highest'};
+  ['Soldier',3],['Bounty Hunter',3],['Smuggler',3],['Hacker',3],['Special Operations',4],['Deep Cover Agent',4]];
+const TIER={1:'Low',2:'Moderate',3:'Higher',4:'Extreme'};
+const DIGI={1:500,2:800,3:1200,4:2000};
+const CAREER_NOTE={'Soldier':'Front-line combat.','Medic':'Field medicine.','Bounty Hunter':'Tracker and captor.','Hacker':'Systems intrusion. Needs a Hacking Rig.','Smuggler':'Transport and deception.','Pilot':'Out of scope for the first playtest.'};
+const TIERS=['Cheap','Standard','Military','Black Market'], TPRICE=[50,200,800,1500];
+const WTYPES=[
+  {n:'Pistol',d:[1,4],ft:50,band:2,hands:1,mag:8,tr:'Can fire while in melee.',pistol:true},
+  {n:'SMG',d:[2,4],ft:30,band:1,hands:1,mag:12,tr:'Short range, large mag.'},
+  {n:'Shotgun',d:[4,4],ft:30,band:1,hands:2,mag:4,tr:'+1 damage die within 15 ft.'},
+  {n:'Rifle',d:[1,6],ft:100,band:3,hands:2,mag:6,tr:'-1 damage within 10 ft.'},
+  {n:'Blade / Blunt',d:[1,4],ft:5,band:0,hands:1,mag:0,tr:'No reload. Muscles adds to damage.',melee:true}];
+const ARMORS=[
+  {id:'scrap',n:'Scrap Plate',tier:'Cheap',ap:15,price:300,perk:'No perk.'},
+  {id:'cheapfull',n:'Cheap full set',tier:'Cheap',ap:15,price:300,perk:''},
+  {id:'stdfull',n:'Standard full set',tier:'Standard',ap:20,price:1200,perk:''},
+  {id:'medic',n:'Field Medic Rig',tier:'Standard',ap:20,price:1200,perk:'Medkits heal +2 HP when you use them (any 2 pieces).'},
+  {id:'recon',n:'Recon Suit',tier:'Standard',ap:20,price:1200,perk:'Ghost Step: ignore the -1 Evasion for standing still, +2 to Stealth (all 6 pieces).'},
+  {id:'signal',n:'Signal Weave',tier:'Standard',ap:20,price:1200,perk:'+1 Bandwidth, +1 to Hacking rolls (any 3 pieces incl. head).'},
+  {id:'milfull',n:'Military full set',tier:'Military',ap:25,price:4800,perk:''},
+  {id:'assault',n:'Assault Frame',tier:'Military',ap:25,price:4800,perk:'Overdrive: once per Rest, take an extra Move (any 4 pieces).'},
+  {id:'bmfull',n:'Black Market full set',tier:'Black Market',ap:30,price:6000,perk:'Plus a perk.'},
+  {id:'phase',n:'Phase Shroud',tier:'Black Market',ap:30,price:9000,perk:'Blink Plate: once per Rest, negate one hit\'s damage, then Slowed 1 turn (all 6 pieces).'}];
+const ITEMS=[
+  ['Medkit',100,'1 Action, restores 5 HP. One use.','Healing'],['Stim Injector',75,'1 Action, +2 Speed for 3 turns. Crash: -1 to rolls for 1 turn.','Healing'],['Trauma Foam',60,'Stabilizes a 0 HP ally without a roll. One use.','Healing'],['Regen Patch',150,'Heals 1 HP per turn for 5 turns.','Healing'],['Revive Kit',400,'Revives an ally who just died if used within 2 turns. One per session.','Healing'],
+  ['Hacking Rig',200,'Grants the Hacker their Bandwidth pool.','Tech'],['Toolkit',100,'Needed for repairs and modifications.','Tech'],['Ghost Spike',100,'One use. Bypasses a basic lock or terminal. Needs rank 1 in the relevant skill.','Tech'],['Signal Jammer',200,'Blocks comms and drones within 50 ft for 3 turns.','Tech'],['Drone Hijacker',250,'Take over a drone for 3 turns.','Tech'],['Bandwidth Cell',75,'One use. Restores 2 Bandwidth.','Tech'],['Repair Drone',200,'Restores 2 AP per turn to one armor piece for 3 turns.','Tech'],
+  ['Scanner',50,'+2 on detection checks.','Recon'],['Forensic Kit',150,'+2 to examining scenes and bodies.','Recon'],['Lie Sensor',200,'Reads stress. +2 vs. deception.','Recon'],['Tracker Tag',75,'Sticks to a target. Tracks for 24 hours.','Recon'],['Directional Earpiece',0,'+3 to Eavesdropping with range and line of sight. Price not set.','Recon'],
+  ['Stun Cuffs',100,'Binds a Prone target. Cannot act until freed.','Combat'],['Net Launcher',200,'Range 30 ft. Target is Slowed until freed.','Combat'],['Stun Baton',250,'1d4 melee. Target is Slowed 1 turn on hit.','Combat'],['Grenade',100,'1d8 damage, 3 ft diameter. Evasion roll or +1d8.','Combat'],['Smoke Grenade',50,'Blocks line of sight, 20 ft radius, 3 turns.','Combat'],['Flashbang',100,'Targets in 20 ft lose next Action. One per fight.','Combat'],['Welder Torch',150,'1d6 melee. Cuts through doors.','Combat'],['Deployable Turret',500,'1d6 shots, 8 uses. Needs a Toolkit to set up.','Combat'],['Gravity Grenade',1500,'Black Market. Single use. Zero-G, Heavy-G, or Implosion mode, 20 ft radius.','Combat'],
+  ['Grapple Line',100,'Climb or swing 60 ft.','Mobility'],['Jetpack',500,'Fly at Speed for 3 turns. One use per Rest.','Mobility'],['Cloak Field',800,'Invisible for 3 turns. Breaks when you attack.','Mobility'],['Energy Shield',700,'+10 AP pool, regenerates 2 AP/turn.','Defense']];
+const KITS=[['500','Standard weapon (200), full Cheap armor (300).'],['800','Standard weapon (200), full Cheap armor (300), Medkit and Scanner (150), 150 spare.'],['1,200','Military weapon (800), full Cheap armor (300), Medkit (100).'],['2,000','Military weapon (800), full Standard armor (1,200).']];
+const INJURY=[
+  [1,5,'DEAD','Character dies. A Revive Kit can reverse this within 2 turns.'],[6,10,'Massive Hemorrhage','Lose 2 HP per turn until stabilized. Cannot act until stopped.'],[11,15,'Organ Trauma','Lose 1 HP per turn. -2 to all rolls until treated.'],[16,20,'Limb Removed','One limb severed (GM calls which). -2 to rolls needing it. Permanent until prosthetic.'],[21,28,'Broken Limb','Cannot use that limb. -2 to rolls needing it. Heals after Downtime.'],[29,36,'Deep Wound','Lose 1 HP per turn for 3 turns. -1 to all rolls until treated.'],[37,44,'Concussion','Stunned 1 turn, then -2 to Knowledge and Memory rolls until Rested.'],[45,52,'Unconscious','Out for 1d4 turns. Allies must carry or leave you.'],[53,60,'Shattered Ribs','-1 to all physical rolls. No sprinting. Heals after Downtime.'],[61,68,'Eye Damage','Blind in one eye. -2 to ranged attacks and Perception. Permanent until treated.'],[69,76,'Muscle Tear','-1 to Muscles or Accuracy rolls. Heals after Downtime.'],[77,83,'Nerve Damage','-1 to Accuracy and fine motor rolls. Heals after Downtime.'],[84,89,'Stunned','Lose your next action. No lasting effect.'],[90,94,'Winded','Lose your Move action next turn.'],[95,99,'Superficial Wound','Cosmetic only. No penalty.'],[100,100,'Adrenaline Surge','No injury. Gain 1 Momentum and +2 to all rolls until the end of the encounter.']];
+const CONDS=[['Pinned','Cannot move freely; a full action to escape.'],['Slowed','Speed halved.'],['Prone','-2 to your attacks; +2 to enemy attacks against you.'],['Poisoned','1d4 damage per turn until treated.'],['Blinded','-4 to rolls requiring sight.'],['Stunned','Lose your next action.'],['Panicked','Must move away from the source of fear.'],['Restrained','Cannot move; can still act.']];
 const STEPS=['Species','Attributes','Career','Skills','Gear','Sheet'];
 
-const blank=()=>({mode:'build',pcode:'',pid:'',gm:false,inParty:false,pl:{init:false,hp:0,hpMax:0,ap:12,apMax:12,arc:0,favor:0,sil:1,still:0,round:1,uny:false,rapid:false,wi:0,band:1,cover:0,tcover:0,aim:false,pack:false,enemyEv:5,ecn:0,dn:13,mod:0,dmg:3,spend:1,res:null,last:null,log:[]},step:0,name:'',species:'',vPrimary:'muscles',vExtra:'charm',fTrait:'regen',hFloat:{},
-  base:Object.fromEntries(ATTRS.map(a=>[a,0])),career:'',skills:{},abil:{},freeAb:'',gear:'',notes:''});
+const blank=()=>({mode:'build',pcode:'',pid:'',gm:false,inParty:false,pl:{init:false,hp:0,hpMax:0,ap:12,apMax:12,arc:0,favor:0,sil:1,still:0,round:1,uny:false,rapid:false,wi:0,band:1,cover:0,tcover:0,aim:false,pack:false,enemyEv:5,ecn:0,dn:13,mod:0,dmg:3,spend:1,res:null,last:null,log:[],cond:{},v:0},step:0,name:'',species:'',vPrimary:'muscles',vExtra:'charm',fTrait:'regen',hFloat:{},
+  base:Object.fromEntries(ATTRS.map(a=>[a,0])),career:'',skills:{},abil:{},freeAb:'',buy:{},armor:'',gear:'',notes:''});
 let S=blank();
 try{const raw=localStorage.getItem('eh-char');if(raw){S=Object.assign(blank(),JSON.parse(raw))}}catch(e){}
 function save(){try{localStorage.setItem('eh-char',JSON.stringify(S))}catch(e){}}
@@ -241,20 +280,15 @@ const floatLeft=()=>(SPECIES[S.species]&&SPECIES[S.species].float||0)-Object.val
 const skillRank=s=>S.skills[s]||0;
 const abKey=(s,a)=>s+'|'+a;
 const abRank=(s,a)=>S.abil[abKey(s,a)]||0;
-function abCost(s,a){const r=abRank(s,a);return Math.max(0,r-(S.freeAb===abKey(s,a)&&r>0?1:0))*unitCost(a)}
-function spent(attr){
-  let n=0;
-  for(const s in SKILLS[attr]){n+=skillRank(s);for(const a of SKILLS[attr][s])n+=abCost(s,a)}
-  return n;
-}
+function spent(attr){let n=0;for(const s in SKILLS[attr])n+=skillRank(s);return n}
 const left=attr=>final(attr)-spent(attr);
-function resetAttr(attr){for(const s in SKILLS[attr]){delete S.skills[s];for(const a of SKILLS[attr][s])delete S.abil[abKey(s,a)]}}
+function resetAttr(attr){for(const s in SKILLS[attr])delete S.skills[s]}
 function normalize(){
   for(const a of ATTRS){
     if(S.base[a]+bonus()[a]>ATTR_CAP)S.base[a]=Math.max(0,ATTR_CAP-bonus()[a]);
     if(left(a)<0)resetAttr(a);
   }
-  if(S.freeAb&&S.species!=='human')S.freeAb='';
+  S.freeAb='';
 }
 const arcPool=()=>(final('knowledge')+final('memory'))*3+((SPECIES[S.species]||{}).arc||0);
 const bonusChips=()=>{
@@ -269,22 +303,26 @@ function chipsFor(k){
 }
 
 /* ---------- steps ---------- */
+function myAbilities(){
+  const c=CAREER_AB[S.career];if(!c)return[];
+  const best=Math.max(0,...c.sk.map(skillRank));
+  return c.list.map(([x,r,fx])=>({x,r,fx,ok:best>=r,s:c.label}));
+}
+const knownAbilities=()=>myAbilities().filter(a=>a.ok);
+function abList(list,showLock){
+  let h='<div class="abilities">';
+  for(const a of list)h+=`<div class="row" style="align-items:flex-start;${a.ok===false?'opacity:.6':''}"><span class="lab">${a.x} <span class="chip">R${a.r}</span>${a.ok===false?`<small>Locked until a parent skill reaches rank ${a.r}</small>`:''}</span><span class="fx" style="flex:1">${a.fx}</span></div>`;
+  return h+'</div>';
+}
 function stepSpecies(){
-  let h=`<h2>Choose your species</h2><p class="lede">Species sets your attribute bonuses and special abilities. Kongari is not covered in your species file, so it is left out for now.</p><div class="grid">`;
+  let h=`<h2>Choose your species</h2><p class="lede">Species sets your attribute bonuses, Speed, Silhouette and five species abilities. Tap one to read all five.</p><div class="grid">`;
   for(const k in SPECIES){const sp=SPECIES[k];
     h+=`<button class="card" data-a="species" data-v="${k}" aria-pressed="${S.species===k}"><strong>${sp.name}</strong><small>${sp.tag}</small><span class="chips">${chipsFor(k)}</span></button>`}
   h+='</div>';
   const sp=SPECIES[S.species];
   if(sp){
-    h+=`<div class="detail"><h3>${sp.name} traits</h3>`;
-    if(sp.choose){
-      h+=`<div class="trait"><b>Choose one trait</b><div class="pillrow" style="margin-top:6px">`+sp.choose.map(c=>`<button class="pill" data-a="ftrait" data-v="${c[0]}" aria-pressed="${S.fTrait===c[0]}">${c[1]}</button>`).join('')+`</div>`;
-      const c=sp.choose.find(c=>c[0]===S.fTrait);h+=`<p>${c[2]}</p></div>`;
-    }
+    h+=`<div class="detail"><h3>${sp.name} abilities</h3><p class="meter">Speed ${sp.spd*10} ft · Silhouette ${sp.sil}${sp.swim?` · Swim ${sp.swim*10} ft`:''} · Evasion ${Math.floor(sp.spd)-sp.sil}</p>`;
     for(const t of sp.traits)h+=`<div class="trait"><b>${t[0]}</b><p>${t[1]}</p></div>`;
-    if(sp.vulkari){
-      h+=`<h3>Your bonuses</h3><div class="trait"><b>+2 to</b><div class="pillrow" style="margin:6px 0">`+['muscles','accuracy'].map(a=>`<button class="pill" data-a="vp" data-v="${a}" aria-pressed="${S.vPrimary===a}">${AL[a]}</button>`).join('')+`</div><b>+1 to</b><div class="pillrow" style="margin-top:6px">`+ATTRS.map(a=>`<button class="pill" data-a="vx" data-v="${a}" aria-pressed="${S.vExtra===a}">${AL[a]}</button>`).join('')+`</div></div>`;
-    }
     if(sp.float){
       h+=`<h3>Place your ${sp.float} floating points <span class="meter">(${floatLeft()} left)</span></h3>`;
       for(const a of ATTRS)h+=`<div class="row"><span class="lab">${AL[a]}</span><span class="step"><button data-a="hf" data-v="${a}" data-d="-1" ${!(S.hFloat[a]>0)?'disabled':''}>−</button><output>${S.hFloat[a]||0}</output><button data-a="hf" data-v="${a}" data-d="1" ${floatLeft()<=0?'disabled':''}>+</button></span></div>`;
@@ -295,8 +333,8 @@ function stepSpecies(){
   return h;
 }
 function stepAttrs(){
-  const used=baseSpent(),b=bonus();
-  let h=`<h2>Distribute attributes</h2><p class="lede">Spend ${POINTS} points. No attribute may pass ${ATTR_CAP} at creation, species bonus included. Each point becomes a skill rank to spend in that attribute.</p>
+  const used=baseSpent(),b=bonus(),sp=SPECIES[S.species]||{};
+  let h=`<h2>Distribute attributes</h2><p class="lede">Spend ${POINTS} points. No attribute may pass ${ATTR_CAP} at creation, species bonus included. Each point becomes a skill rank in that attribute.</p>
   <p class="meter ${used>POINTS?'over':''}"><b>${POINTS-used}</b> of ${POINTS} points left</p>`;
   for(const a of ATTRS){
     const cap=ATTR_CAP-b[a];
@@ -305,53 +343,82 @@ function stepAttrs(){
       <span class="step"><button data-a="attr" data-v="${a}" data-d="-1" ${S.base[a]<=0?'disabled':''}>−</button><output>${S.base[a]}</output><button data-a="attr" data-v="${a}" data-d="1" ${S.base[a]>=cap||used>=POINTS?'disabled':''}>+</button></span>
       <span class="final">= ${final(a)} total</span></div>`;
   }
-  h+=`<h3>Derived</h3><div class="stats"><div class="stat"><span>Arc Pool</span><b>${arcPool()}</b></div><div class="stat"><span>Speed</span><b>3</b></div></div>
-  <p class="lede" style="margin-top:8px;font-size:13px">Arc Pool = (Knowledge + Memory) × 3${(SPECIES[S.species]||{}).arc?` + ${SPECIES[S.species].arc} species Arc`:''}. Speed 3 = 30 ft.</p>`;
+  h+=`<h3>Derived</h3><div class="stats"><div class="stat"><span>Arc Pool</span><b>${arcPool()}</b></div><div class="stat"><span>HP</span><b>20</b></div><div class="stat"><span>Speed</span><b>${SPD()}</b></div><div class="stat"><span>Evasion</span><b>${evBase()}</b></div></div>
+  <p class="lede" style="margin-top:8px;font-size:13px">Arc Pool = (Knowledge + Memory) × 3${sp.arc?` + ${sp.arc} species Arc`:''}. Evasion = Speed − Silhouette. Speed × 10 = feet.</p>`;
   return h;
 }
 function stepCareer(){
-  let h=`<h2>Choose your career</h2><p class="lede">A career is what your character does for a living. It sets your starting Digi tier and your contacts. It is not a class.</p><div class="grid">`;
-  for(const [n,t] of CAREERS)h+=`<button class="card" data-a="career" data-v="${n}" aria-pressed="${S.career===n}"><strong>${n}</strong><span class="chips" style="margin-top:6px"><span class="chip tier">Tier ${t} · ${TIER[t]} Digi</span></span></button>`;
-  return h+'</div>';
-}
-function stepSkills(){
-  let h=`<h2>Skills and abilities</h2><p class="lede">Every point of an attribute is one skill rank. Abilities are bought with the same pool and cannot rank higher than their skill. Each ability shows its cost; \"est.\" costs are placeholders.</p>`;
-  for(const a of ATTRS){
-    const pool=final(a),l=left(a);
-    h+=`<h3>${AL[a]} <span class="meter ${l<0?'over':''}">· <b>${l}</b> of ${pool} left</span></h3>`;
-    const sk=SKILLS[a];
-    if(!Object.keys(sk).length){h+=`<p class="lede" style="font-size:13px">Toughness has one skill so far.</p>`;continue}
-    for(const s in sk){
-      const r=skillRank(s);
-      h+=`<div class="row"><span class="lab">${s}</span><span class="step"><button data-a="skill" data-v="${s}" data-at="${a}" data-d="-1" ${r<=0?'disabled':''}>−</button><output>${r}</output><button data-a="skill" data-v="${s}" data-at="${a}" data-d="1" ${l<=0||r>=5?'disabled':''}>+</button></span></div>`;
-      const abs=sk[s];
-      const showAbs=abs.filter(x=>r>0||S.freeAb===abKey(s,x));
-      if(showAbs.length){
-        h+='<div class="abilities">';
-        for(const x of showAbs){
-          const k=abKey(s,x),ar=abRank(s,x),free=S.freeAb===k;
-          const maxR=Math.min(MAXR[x]||5,Math.max(r,free?1:0));
-          const uc=unitCost(x),step=ar<maxR&&reqOk(x)&&(l>=uc||(free&&ar===0));
-          h+=`<div class="row"><span class="lab">${x} <span class="chip">${uc}${(MAXR[x]||5)>1?'/rank':' pt'}${EST.includes(x)?' est.':''}</span>${free?' <span class="chip">free R1</span>':''}</span><span class="step"><button data-a="abil" data-v="${k}" data-d="-1" ${ar<=0?'disabled':''}>−</button><output>${ar}</output><button data-a="abil" data-v="${k}" data-d="1" ${step?'':'disabled'}>+</button></span><span class="fx">${ar?AB[x](ar):'Not learned.'}</span></div>`;
-        }
-        h+='</div>';
-      }
-    }
-  }
-  if(S.species==='human'){
-    h+=`<h3>Human: free rank-1 ability</h3><p class="lede" style="font-size:13px">Pick one ability to start at rank 1 at no cost.</p><div class="pillrow">`;
-    for(const a of ATTRS)for(const s in SKILLS[a])for(const x of SKILLS[a][s]){const k=abKey(s,x);h+=`<button class="pill" data-a="free" data-v="${k}" aria-pressed="${S.freeAb===k}">${x}</button>`}
+  let h=`<h2>Choose your career</h2><p class="lede">A career is what your character does for a living. It sets your starting Digi and your career abilities. Tap a career to read its abilities before you pick.</p><div class="grid">`;
+  for(const [n,t] of CAREERS)h+=`<button class="card" data-a="career" data-v="${n}" aria-pressed="${S.career===n}"><strong>${n}</strong><small>${CAREER_NOTE[n]||'No abilities written yet.'}</small><span class="chips" style="margin-top:6px"><span class="chip tier">Tier ${t} · ${DIGI[t].toLocaleString()} Digi</span></span></button>`;
+  h+='</div>';
+  const c=CAREER_AB[S.career];
+  if(S.career){
+    h+=`<div class="detail"><h3>${S.career} abilities</h3>`;
+    if(c){h+=`<p class="meter">Parent skill: ${c.label}. R1–R5 is the skill rank you need. Abilities are free in the first playtest.</p>${c.note?`<p class="meter">${c.note}</p>`:''}`+abList(c.list.map(([x,r,fx])=>({x,r,fx})))}
+    else h+='<p class="lede" style="font-size:13px">No abilities written for this career yet.</p>';
     h+='</div>';
   }
   return h;
 }
+function stepSkills(){
+  let h=`<h2>Skills and abilities</h2><p class="lede">Every point of an attribute buys one skill rank (max 5). Abilities cost nothing in the playtest. They unlock when a parent skill reaches the ability's rank.</p>`;
+  for(const a of ATTRS){
+    const pool=final(a),l=left(a);
+    h+=`<h3>${AL[a]} <span class="meter ${l<0?'over':''}">· <b>${l}</b> of ${pool} left</span></h3>`;
+    for(const s in SKILLS[a]){
+      const r=skillRank(s);
+      h+=`<div class="row"><span class="lab">${s}<small>${SKDESC[s]||''}</small></span><span class="step"><button data-a="skill" data-v="${s}" data-at="${a}" data-d="-1" ${r<=0?'disabled':''}>−</button><output>${r}</output><button data-a="skill" data-v="${s}" data-at="${a}" data-d="1" ${l<=0||r>=5?'disabled':''}>+</button></span></div>`;
+    }
+  }
+  const c=CAREER_AB[S.career];
+  h+=`<h3>${S.career?S.career+' abilities':'Career abilities'}</h3>`;
+  if(!S.career)h+='<p class="lede" style="font-size:13px">Pick a career to see its abilities.</p>';
+  else if(!c)h+='<p class="lede" style="font-size:13px">No abilities written for this career yet.</p>';
+  else h+=`<p class="meter">Parent skill: ${c.label}. Unlocked: ${knownAbilities().length} of ${c.list.length}.</p>`+abList(myAbilities());
+  return h;
+}
+const buyN=k=>S.buy[k]||0;
+const openD={};document.addEventListener('toggle',e=>{const w=e.target.dataset&&e.target.dataset.w;if(w)openD[w]=e.target.open},true);
+function digiSpent(){
+  let n=0;
+  for(const k in S.buy){const q=S.buy[k],p=k.split('|');
+    if(p[0]==='w')n+=TPRICE[+p[2]]*q;else{const it=ITEMS.find(i=>i[0]===p[1]);if(it)n+=it[1]*q}}
+  const ar=ARMORS.find(a=>a.id===S.armor);if(ar)n+=ar.price;
+  return n;
+}
+const budget=()=>{const t=(CAREERS.find(c=>c[0]===S.career)||[])[1];return t?DIGI[t]:0};
+function armorAP(){const ar=ARMORS.find(a=>a.id===S.armor);return (ar?ar.ap:0)+(buyN('i|Energy Shield')>0?10:0)}
+function myWeapons(){
+  const out=[];
+  for(const k in S.buy){const p=k.split('|');if(p[0]!=='w'||S.buy[k]<1)continue;
+    const T=WTYPES.find(t=>t.n===p[1]);if(!T)continue;
+    out.push({n:`${T.n} (${TIERS[+p[2]]})`,sk:T.melee?'Melee Combat':'Firearms',band:T.band,dice:T.d,plus:T.melee?final('muscles'):0,pistol:T.pistol,melee:T.melee})}
+  if(!out.length)for(const T of [WTYPES[0],WTYPES[3],WTYPES[4]])out.push({n:T.n+' (issued)',sk:T.melee?'Melee Combat':'Firearms',band:T.band,dice:T.d,plus:T.melee?final('muscles'):0,pistol:T.pistol,melee:T.melee});
+  return out;
+}
 function stepGear(){
-  const t=(CAREERS.find(c=>c[0]===S.career)||[])[1];
-  return `<h2>Equipment and notes</h2>
-  <p class="lede">${t?`Your career is Tier ${t}, so you start with a ${TIER[t]} Digi budget. The exact Digi amounts are not defined in v0.3.`:'Pick a career to see your starting Digi tier.'}</p>
-  <div class="stats"><div class="stat"><span>Cheap</span>Basic tools, civilian clothes</div><div class="stat"><span>Standard</span>Service pistols, light armor</div><div class="stat"><span>Military</span>Restricted; needs connections</div><div class="stat"><span>Black Market</span>Illegal or Arc tech</div></div>
-  <label class="f" for="gear">Starting gear</label><textarea id="gear" data-f="gear" placeholder="Pistol, light armor, field kit...">${esc(S.gear)}</textarea>
-  <label class="f" for="notes">Contacts, background, Divine Favor notes</label><textarea id="notes" data-f="notes">${esc(S.notes)}</textarea>`;
+  const t=(CAREERS.find(c=>c[0]===S.career)||[])[1],bud=budget(),sp=digiSpent();
+  let h=`<h2>Equipment</h2>
+  <p class="lede">${t?`Your career is Tier ${t}, so you start with ${bud.toLocaleString()} Digi. Gear is not career-locked.`:'Pick a career to see your starting Digi.'}</p>
+  <p class="meter ${sp>bud?'over':''}"><b>${(bud-sp).toLocaleString()}</b> of ${bud.toLocaleString()} Digi left</p>
+  <h3>Armor <span class="meter">AP from worn pieces stacks. Sets here are bought whole.</span></h3><div class="grid">`;
+  for(const a of ARMORS)h+=`<button class="card" data-a="armor" data-v="${a.id}" aria-pressed="${S.armor===a.id}"><strong>${a.n}</strong><small>${a.perk||a.tier}</small><span class="chips"><span class="chip">${a.ap} AP</span><span class="chip">${a.price.toLocaleString()} Digi</span></span></button>`;
+  h+=`</div><h3>Weapons</h3><p class="lede" style="font-size:13px">Tier sets price. Damage comes from the weapon type. Reload costs one Action.</p>`;
+  for(const T of WTYPES){
+    h+=`<details class="detail" data-w="${T.n}" ${openD[T.n]?'open':''} style="margin-bottom:6px"><summary><b>${T.n}</b> · ${T.d[0]}d${T.d[1]}${T.melee?' + Muscles':''} · ${T.ft} ft · ${T.hands} hand${T.hands>1?'s':''}${T.mag?` · mag ${T.mag}`:''}</summary><p class="meter">${T.tr}</p>`;
+    TIERS.forEach((tn,i)=>{const k=`w|${T.n}|${i}`;h+=`<div class="row"><span class="lab">${tn} <span class="chip">${TPRICE[i]} Digi</span></span><span class="step"><button data-a="buy" data-v="${k}" data-d="-1" ${!buyN(k)?'disabled':''}>−</button><output>${buyN(k)}</output><button data-a="buy" data-v="${k}" data-d="1" ${buyN(k)>=9?'disabled':''}>+</button></span></div>`});
+    h+='</details>';
+  }
+  let cat='';
+  for(const [n,pr,fx,c] of ITEMS){
+    if(c!==cat){cat=c;h+=`<h3>${c}</h3>`}
+    const k='i|'+n;
+    h+=`<div class="row" style="align-items:flex-start"><span class="lab">${n} <span class="chip">${pr?pr+' Digi':'—'}</span><small>${fx}</small></span><span class="step"><button data-a="buy" data-v="${k}" data-d="-1" ${!buyN(k)?'disabled':''}>−</button><output>${buyN(k)}</output><button data-a="buy" data-v="${k}" data-d="1" ${buyN(k)>=9?'disabled':''}>+</button></span></div>`;
+  }
+  h+=`<h3>Suggested kits</h3><div class="stats">${KITS.map(k=>`<div class="stat"><span>${k[0]} Digi</span>${k[1]}</div>`).join('')}</div>
+  <label class="f" for="gear">Other gear</label><textarea id="gear" data-f="gear" placeholder="Anything else you carry...">${esc(S.gear)}</textarea>
+  <label class="f" for="notes">Contacts, background, Momentum notes</label><textarea id="notes" data-f="notes">${esc(S.notes)}</textarea>`;
+  return h;
 }
 function warnings(){
   const w=[];
@@ -360,33 +427,30 @@ function warnings(){
   if(S.species==='human'&&floatLeft()>0)w.push(`${floatLeft()} Human floating points unplaced.`);
   if(baseSpent()<POINTS)w.push(`${POINTS-baseSpent()} attribute points unspent.`);
   if(!S.career)w.push('No career chosen.');
-  for(const a of ATTRS){if(a!=='toughness'&&left(a)>0)w.push(`${left(a)} ${AL[a]} rank${left(a)>1?'s':''} unspent.`)}
+  for(const a of ATTRS){if(left(a)>0)w.push(`${left(a)} ${AL[a]} rank${left(a)>1?'s':''} unspent.`)}
+  if(digiSpent()>budget())w.push(`Over budget by ${digiSpent()-budget()} Digi.`);
+  if(S.career==='Hacker'&&!buyN('i|Hacking Rig'))w.push('Hackers need a Hacking Rig for their Bandwidth pool.');
   return w;
 }
 function textSheet(){
-  const sp=SPECIES[S.species],b=bonus(),L=[];
+  const sp=SPECIES[S.species],L=[];
   L.push(`EVENT HORIZON — ${S.name||'Unnamed'}`);
   L.push(`Species: ${sp?sp.name:'—'}   Career: ${S.career||'—'}${S.career?` (Tier ${CAREERS.find(c=>c[0]===S.career)[1]})`:''}`);
   L.push('');
   L.push('ATTRIBUTES  '+ATTRS.map(a=>`${AL[a]} ${final(a)}`).join(' · '));
-  L.push(`Arc Pool ${arcPool()} · Speed 3 (30 ft) · Divine Favor max 5`);
+  L.push(`HP 20 · Armor ${armorAP()} AP · Evasion ${evBase()} · Speed ${SPD()} (${SPD()*10} ft) · Silhouette ${sp?sp.sil:1} · Arc Pool ${arcPool()} · Momentum max 5`);
   L.push('');
-  if(sp){
-    L.push('TRAITS');
-    if(sp.choose){const c=sp.choose.find(c=>c[0]===S.fTrait);L.push(`- ${c[1]}: ${c[2]}`)}
-    for(const t of sp.traits)L.push(`- ${t[0]}: ${t[1]}`);
-    L.push('');
-  }
+  if(sp){L.push('SPECIES ABILITIES');for(const t of sp.traits)L.push(`- ${t[0]}: ${t[1]}`);L.push('')}
   L.push('SKILLS');
   let any=false;
-  for(const a of ATTRS)for(const s in SKILLS[a]){
-    const r=skillRank(s);if(!r)continue;any=true;
-    const ab=SKILLS[a][s].filter(x=>abRank(s,x)).map(x=>`${x} R${abRank(s,x)}`);
-    L.push(`- ${s} ${r}${ab.length?' ['+ab.join(', ')+']':''}`);
-  }
-  if(S.freeAb){const [s,x]=S.freeAb.split('|');if(!abRank(s,x))L.push(`- Free ability: ${x} R1`)}
-  if(!any&&!S.freeAb)L.push('- none');
-  if(S.gear.trim()){L.push('','GEAR',S.gear.trim())}
+  for(const a of ATTRS)for(const s in SKILLS[a]){const r=skillRank(s);if(!r)continue;any=true;L.push(`- ${s} ${r}`)}
+  if(!any)L.push('- none');
+  const ka=knownAbilities();
+  if(ka.length){L.push('','CAREER ABILITIES');for(const a of ka)L.push(`- ${a.x} (R${a.r}): ${a.fx}`)}
+  const gl=[];
+  for(const k in S.buy){const p=k.split('|'),q=S.buy[k];gl.push(p[0]==='w'?`${q}× ${p[1]} (${TIERS[+p[2]]})`:`${q}× ${p[1]}`)}
+  const ar=ARMORS.find(a=>a.id===S.armor);if(ar)gl.unshift(`${ar.n} (${ar.ap} AP)`);
+  if(gl.length||S.gear.trim()){L.push('','GEAR  ('+digiSpent()+' of '+budget()+' Digi spent)');for(const g of gl)L.push('- '+g);if(S.gear.trim())L.push(S.gear.trim())}
   if(S.notes.trim()){L.push('','NOTES',S.notes.trim())}
   return L.join('\n');
 }
@@ -399,39 +463,37 @@ function stepSheet(){
   <pre id="sheet">${esc(textSheet())}</pre>
   <div class="actions"><button class="btn primary" data-a="copy">Copy sheet</button><button class="btn" data-a="newchar">Start a new character</button></div>
   <div id="msg" class="meter" aria-live="polite"></div>
-  <ul class="assump"><li>Species bonuses add to attributes, and the total sets your skill-rank pool.</li><li>The 5-point cap applies to the total including species bonus.</li><li>Species Arc bonus (+1 for Korvath) is added to Arc Pool as a flat point.</li><li>HP, Evasion (needs Silhouette) and Digi amounts are not defined in v0.3, so they are blank.</li><li>Read the Room sits under Negotiation. Your rules list it under Charm without a parent skill.</li></ul>`;
+  <ul class="assump"><li>Built to Core Rules v0.4. Abilities are free in the first playtest.</li><li>The 5-point cap applies to the total including species bonus.</li><li>Species Arc bonus is added to Arc Pool as a flat point.</li><li>Armor is bought as whole sets here. Mixed pieces are not modeled.</li><li>Weapon damage uses the weapon type table. Tier sets price only.</li></ul>`;
 }
 
-
-/* ---------- play mode (all combat numbers are TEST values) ---------- */
+/* ---------- play mode (v0.4 rules) ---------- */
 const BANDS=['Engaged','Close','Medium','Long','Extreme'];
 const BANDX=['0–5 ft','6–30 ft','31–90 ft','91–180 ft','181+ ft'];
-const WEAPONS=[
-  {n:'Service Pistol',sk:'Firearms',band:1,dice:[1,8],pistol:true},
-  {n:'Combat Rifle',sk:'Firearms',band:2,dice:[2,6]},
-  {n:'Sniper Rifle',sk:'Firearms',band:3,dice:[2,8]},
-  {n:'Vibro-Blade',sk:'Melee Combat',band:0,dice:[1,10],melee:true}];
+let WEAPONS=[];
 const COVERS=[['None',0],['Partial +1',1],['Half +3',3],['Full +5',5]];
 const DNS=[['Easy 8',8],['Standard 13',13],['Hard 18',18],['Extreme 23',23]];
 const roll=n=>{try{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n+1}catch(e){return Math.floor(Math.random()*n)+1}};
 const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
 const sg=n=>n>=0?'+'+n:''+n;
+const SPD=()=>(SPECIES[S.species]||{}).spd||3;
+const evBase=()=>Math.max(0,Math.floor(SPD())-((SPECIES[S.species]||{}).sil??1));
 function PL(){
-  const p=S.pl;
-  if(!p.init){p.hpMax=(S.species==='korvath'?40:30)+4*abRank('Wounds','Thick Skin');p.hp=p.hpMax;p.arc=arcPool();p.init=true}
+  const p=S.pl;WEAPONS=myWeapons();
+  if(p.v!==4){const fresh=!p.init;p.v=4;p.init=true;p.hpMax=20;p.hp=fresh?20:Math.min(p.hp||20,20);p.sil=(SPECIES[S.species]||{}).sil??1;p.cond=p.cond||{};p.wi=0;p.gk='';if(fresh||p.arc==null)p.arc=arcPool()}
+  const gk=S.armor+'|'+buyN('i|Energy Shield');
+  if(p.gk!==gk){p.gk=gk;p.apMax=armorAP();p.ap=p.apMax}
+  if(p.wi>=WEAPONS.length)p.wi=0;
   p.arc=Math.min(p.arc,arcPool());p.hp=Math.min(p.hp,p.hpMax);p.ap=Math.min(p.ap,p.apMax);
   return p;
 }
-const sneakB=r=>({1:1,2:1,3:2,4:2,5:3})[r]||0;
-const skillBonus=s=>skillRank(s)+(s==='Stealth'?sneakB(abRank('Stealth','Sneak')):0);
-const evasion=()=>{const p=PL();return Math.max(0,3-p.sil-p.still)};
-const packOn=()=>S.species==='vulkari'&&PL().pack;
+const skillBonus=s=>skillRank(s);
+const evasion=()=>{const p=PL();return Math.max(0,Math.floor(SPD())-p.sil-p.still)};
 function setRes(h,lines,tone){const p=PL();p.res={h,lines,tone};p.log.unshift(`R${p.round} · ${h}`);p.log=p.log.slice(0,25)}
 function doSkill(label,bonus){
   const p=PL(),r=roll(20),tot=r+bonus+p.mod,n1=r===1,n20=r===20,ok=n20||(!n1&&tot>=p.dn);
   const L=[`d20 ${r} ${sg(bonus)} skill${p.mod?` ${sg(p.mod)} mod`:''} = ${tot} vs ${p.dn}`];
   if(n20)L.push('Natural 20: automatic success.');
-  if(n1){L.push('Natural 1: automatic failure. +1 Divine Favor.');p.favor=Math.min(5,p.favor+1)}
+  if(n1){L.push('Natural 1: automatic failure. +1 Momentum.');p.favor=Math.min(5,p.favor+1)}
   else if(tot>=p.dn)L.push(`Beat the target by ${tot-p.dn}.`);else L.push(`Missed by ${p.dn-tot}.`);
   setRes(`${label}: ${ok?'Success':'Failure'}`,L,ok?'good':'bad');
 }
@@ -446,10 +508,9 @@ function atkBonus(){
   const p=PL(),w=WEAPONS[p.wi],rp=rangePen();
   if(rp.blocked)return{blocked:rp.blocked};
   let b=skillRank(w.sk);const parts=[`${w.sk} ${b}`];
-  if(!w.melee){const ar=abRank('Firearms',BANDS[w.band]+' Range');if(ar){b+=ar;parts.push(`${BANDS[w.band]} spec +${ar}`)}}
   if(rp.pen){b+=rp.pen}parts.push(...rp.notes);
   if(p.aim&&!w.melee){b+=1;parts.push('Aimed Shot +1')}
-  if(packOn()){b+=1;parts.push('Pack Tactics +1')}
+  if(p.cond.Prone){b-=2;parts.push('Prone −2')}
   if(p.mod){b+=p.mod;parts.push(`mod ${sg(p.mod)}`)}
   return{b,parts};
 }
@@ -459,42 +520,46 @@ function doAttack(){
   const r=roll(20),tot=r+ab.b,dr=roll(20),dt=dr+p.enemyEv+p.tcover,n1=r===1,n20=r===20;
   const hit=n20||(!n1&&tot>dt),crit=n20||(p.ecn>=2&&r===p.ecn);
   const L=[`Attack: d20 ${r} ${sg(ab.b)} = ${tot} (${ab.parts.join(', ')})`,`Defense: d20 ${dr} + ${p.enemyEv}${p.tcover?` + ${p.tcover} cover`:''} = ${dt}`];
-  if(n1){L.push('Natural 1: automatic miss. +1 Divine Favor.');p.favor=Math.min(5,p.favor+1)}
+  if(n1){L.push('Natural 1: automatic miss. +1 Momentum.');p.favor=Math.min(5,p.favor+1)}
   if(!n1&&!n20&&tot===dt)L.push('Tie goes to the defender (assumed rule).');
   if(hit){
     const [n,s]=w.dice;let rolls;
     if(crit){rolls=Array(n).fill(s);rolls.push(roll(s))}else rolls=Array.from({length:n},()=>roll(s));
-    const sum=rolls.reduce((a,b)=>a+b,0);
-    L.push(`${crit?'CRITICAL. Dice maxed, plus one extra die. ':''}Damage ${n}d${s}: [${rolls.join(', ')}] = ${sum}`);
+    const sum=rolls.reduce((a,b)=>a+b,0)+(w.plus||0);
+    L.push(`${crit?'CRITICAL. Dice maxed, plus one extra die. ':''}Damage ${n}d${s}${w.plus?` + ${w.plus} Muscles`:''}: [${rolls.join(', ')}]${w.plus?` + ${w.plus}`:''} = ${sum}`);
     setRes(`${w.n}: ${crit?'Critical hit':'Hit'} for ${sum}`,L,'good');
   }else setRes(`${w.n}: Miss`,L,'bad');
 }
 function doDefend(){
-  const p=PL(),r=roll(20),ev=evasion(),tot=r+ev+p.cover+(packOn()?1:0);
-  const L=[`d20 ${r} + ${ev} evasion${p.cover?` + ${p.cover} cover`:''}${packOn()?' + 1 pack':''} = ${tot}`,'Compare to the attacker\'s roll. Higher wins; ties to you (assumed).'];
-  if(r===1){L.push('Natural 1: automatic failure. +1 Divine Favor.');p.favor=Math.min(5,p.favor+1)}
+  const p=PL(),r=roll(20),ev=evasion(),tot=r+ev+p.cover;
+  const L=[`d20 ${r} + ${ev} evasion${p.cover?` + ${p.cover} cover`:''} = ${tot}`,'Compare to the attacker\'s roll. Higher wins; ties to you (assumed).'];
+  if(r===1){L.push('Natural 1: automatic failure. +1 Momentum.');p.favor=Math.min(5,p.favor+1)}
   if(r===20)L.push('Natural 20: automatic success.');
   setRes(`Defense ${tot}`,L,'neutral');
 }
+function injuryRoll(){
+  const r=roll(100),e=INJURY.find(x=>r>=x[0]&&r<=x[1]);
+  return `Injury Table d100 = ${r === 100 ? '00' : r}: ${e[2]}. ${e[3]}`+(r===100?' (+1 Momentum applied)':'');
+}
 function takeDamage(n){
-  const p=PL();let m;
+  const p=PL();let m='';
   if(p.ap>0){
-    if(n>=p.ap){m=`Armor broke (absorbed ${p.ap}); the rest is negated.`;p.ap=0}
-    else{p.ap-=n;m=`Armor absorbed ${n}. ${p.ap} AP left.`}
-    setRes(`Took ${n} damage`,[m],'neutral');return;
+    const a=Math.min(p.ap,n);p.ap-=a;n-=a;m=`Armor absorbed ${a}. ${p.ap} AP left.`;
+    if(n>0)m+=' Armor is gone; the rest goes to HP (assumed).';
   }
-  p.hp-=n;m=`${n} damage to HP.`;
+  if(n>0){p.hp-=n;m+=` ${n} damage to HP.`}
   if(p.hp<=0){
     if(S.species==='korvath'&&!p.uny){p.uny=true;p.hp=1;m+=' Unyielding: you stay up at 1 HP.'}
-    else{const r=roll(100);p.hp=5;m+=` Down. Regain 5 HP and roll the Injury Table: d100 = ${r}${r===1?' — DEATH':''}. (Table not written yet.)`}
+    else{p.hp=5;const r=injuryRoll();if(r.includes('= 00'))p.favor=Math.min(5,p.favor+1);m+=` Down. Regain 5 HP. ${r}`}
   }
-  setRes(`Took ${n} damage`,[m],p.hp<=1?'bad':'neutral');
+  setRes(`Took ${p.dmg} damage`,[m.trim()],p.hp<=1?'bad':'neutral');
 }
 function spendArc(n){
   const p=PL();
   if(n>p.arc){const r=roll(100),had=p.arc;p.arc=0;setRes('Arc Overload',[`Spent ${n} with only ${had} left. Roll the Arc Overload Table: d100 = ${r}. (Table not written yet.)`],'bad')}
   else{p.arc-=n;setRes(`Spent ${n} Arc`,[`${p.arc} left in pool.`],'neutral')}
 }
+const MOM={plus3:[1,'+3 to the roll you just made'],stab:[2,'Stabilize at 0 HP without a roll'],truth:[2,'Declare a minor narrative truth (GM may veto)'],escape:[3,'Avoid a fatal or catastrophic consequence']};
 const PMAX={hp:p=>p.hpMax,ap:p=>p.apMax,arc:()=>arcPool(),favor:()=>5,sil:()=>4,still:()=>9,enemyEv:()=>15,ecn:()=>19,mod:()=>5,dmg:()=>99,spend:()=>30,hpMax:()=>200,apMax:()=>60};
 const PMIN={mod:-5,hpMax:1,dmg:1,spend:1};
 function playAct(a,t){
@@ -503,26 +568,31 @@ function playAct(a,t){
     case 'pn':{const k=t.dataset.k,dd=+t.dataset.d;let n=p[k]+dd;if(k==='ecn'&&n===1)n=dd>0?2:0;p[k]=clamp(n,PMIN[k]??0,PMAX[k](p));if(k==='hpMax')p.hp=Math.min(p.hp,p.hpMax);break}
     case 'pset':p[t.dataset.k]=+v;break;
     case 'ptog':p[t.dataset.k]=!p[t.dataset.k];break;
-    case 'pskill':{p.last={t:'skill',v};const lab=v;doSkill(lab,v==='Acrobatics'?skillBonus('Athletics')+abRank('Athletics','Acrobatics'):skillBonus(v));break}
+    case 'pcond':{if(p.cond[v])delete p.cond[v];else p.cond[v]=true;break}
+    case 'pskill':p.last={t:'skill',v};doSkill(v,skillBonus(v));break;
     case 'pattack':p.last={t:'attack'};doAttack();break;
     case 'pdefend':p.last={t:'defend'};doDefend();break;
     case 'preroll':{if(p.favor<1||!p.last)break;p.favor--;const l=p.last;
-      if(l.t==='skill')doSkill(l.v,l.v==='Acrobatics'?skillBonus('Athletics')+abRank('Athletics','Acrobatics'):skillBonus(l.v));
+      if(l.t==='skill')doSkill(l.v,skillBonus(l.v));
       else if(l.t==='attack')doAttack();else doDefend();
-      p.res.lines.push('Rerolled with 1 Divine Favor.');break}
+      p.res.lines.push('Rerolled with 1 Momentum.');break}
+    case 'pmom':{const m=MOM[v];if(!m||p.favor<m[0])break;p.favor-=m[0];
+      if(!p.res)p.res={h:'Momentum',lines:[],tone:'neutral'};
+      p.res.lines.push(`Spent ${m[0]} Momentum: ${m[1]}.`);p.log.unshift(`R${p.round} · Momentum: ${m[1]}`);
+      if(v==='stab'&&p.hp<=0)p.hp=1;break}
     case 'pdmg':takeDamage(p.dmg);break;
     case 'pheal':{
-      if(v==='breather'){p.hp=Math.min(p.hpMax,p.hp+3);setRes('Breather',['Recovered 3 HP (test value). Stabilize conditions.'],'good')}
-      if(v==='rest'){p.hp=Math.min(p.hpMax,p.hp+10);p.arc=Math.min(arcPool(),p.arc+1);setRes('Rest (1 hour)',['Recovered 10 HP (test value), +1 natural Arc. Clear minor conditions.'],'good')}
-      if(v==='down'){p.hp=p.hpMax;p.arc=Math.min(arcPool(),p.arc+8);p.uny=false;p.rapid=false;setRes('Downtime (8+ hours)',['Full HP, +8 natural Arc, abilities recharged.'],'good')}
+      if(v==='breather'){const r=roll(6);p.hp=Math.min(p.hpMax,p.hp+r);setRes('Breather (5–10 min)',[`Recovered 1d6 = ${r} HP. Cannot be in danger. Once per hour.`],'good')}
+      if(v==='rest'){const h=Math.ceil(p.hpMax/2);p.hp=Math.min(p.hpMax,p.hp+h);p.arc=Math.min(arcPool(),p.arc+1);p.uny=false;setRes('Rest (1–2 hours)',[`Recovered half max HP (${h}). +1 natural Arc (test value). Regain 1 use per ability.`],'good')}
+      if(v==='down'){p.hp=p.hpMax;p.ap=p.apMax;p.arc=Math.min(arcPool(),p.arc+8);p.uny=false;p.rapid=false;setRes('Downtime (8+ hours)',['Full HP, armor restored, +8 natural Arc (test value), all resources reloaded.'],'good')}
       if(v==='hour'){p.arc=Math.min(arcPool(),p.arc+1);setRes('One hour passes',['+1 natural Arc.'],'neutral')}
       break}
     case 'parc':spendArc(p.spend);break;
     case 'pround':{p.round++;if(v==='moved')p.still=0;else p.still=Math.min(9,p.still+1);
       const L=[v==='moved'?'You moved, so Evasion resets.':'You stood still: Evasion drops 1.'];
-      if(S.species==='floran'&&S.fTrait==='regen'){p.hp=Math.min(p.hpMax,p.hp+2);L.push('Natural Regeneration: +2 HP.')}
+      if(p.cond.Poisoned){const r=roll(4);p.hp=Math.max(0,p.hp-r);L.push(`Poisoned: ${r} damage (1d4).${p.hp<=0?' You are at 0 HP.':''}`)}
       setRes(`Round ${p.round}`,L,'neutral');break}
-    case 'prapid':{if(p.rapid)break;p.rapid=true;const r=roll(8);p.hp=Math.min(p.hpMax,p.hp+r);setRes('Rapid regeneration',[`1d8 = ${r} HP recovered.`],'good');break}
+    case 'prapid':{if(p.rapid)break;p.rapid=true;const r=roll(4);p.hp=Math.min(p.hpMax,p.hp+r);setRes('Natural Regeneration',[`1d4 = ${r} HP recovered.`],'good');break}
     case 'pnew':p.round=1;p.still=0;p.uny=false;p.rapid=false;setRes('New encounter',['Round reset. Once-per-encounter abilities refreshed.'],'neutral');break;
     case 'pclear':p.log=[];break;
   }
@@ -532,48 +602,52 @@ function playView(){
   const bar=(v,m,c)=>`<div class="mbar"><i style="width:${m?Math.round(100*v/m):0}%;background:var(${c})"></i></div>`;
   const stp=(k,val,min,max)=>`<span class="step"><button data-a="pn" data-k="${k}" data-d="-1" ${val<=min?'disabled':''}>−</button><output>${val}</output><button data-a="pn" data-k="${k}" data-d="1" ${val>=max?'disabled':''}>+</button></span>`;
   const pills=(k,list,cur)=>`<div class="pillrow">`+list.map(([n,v])=>`<button class="pill" data-a="pset" data-k="${k}" data-v="${v}" aria-pressed="${cur===v}">${n}</button>`).join('')+`</div>`;
-  const res=p.res?`<section class="result ${p.res.tone}" aria-live="polite"><div class="big">${esc(p.res.h)}</div>${p.res.lines.map(l=>`<p>${esc(l)}</p>`).join('')}${p.last&&p.favor>0?`<div class="actions" style="margin:8px 0 0"><button class="btn" data-a="preroll">Reroll the last roll (spend 1 Favor)</button></div>`:''}</section>`
+  const res=p.res?`<section class="result ${p.res.tone}" aria-live="polite"><div class="big">${esc(p.res.h)}</div>${p.res.lines.map(l=>`<p>${esc(l)}</p>`).join('')}${p.last&&p.favor>0?`<div class="actions" style="margin:8px 0 0"><button class="btn" data-a="preroll">Reroll the last roll (1 Momentum)</button></div>`:''}</section>`
     :`<section class="result"><div class="big">Ready</div><p>Tap a skill or Attack. Rolls show up here.</p></section>`;
+  const kab=knownAbilities();
   let h=`<h2 style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">${esc(S.name)||'Unnamed'} <span class="sub" style="font-weight:400">${(SPECIES[S.species]||{}).name||'No species'} · ${esc(S.career)||'No career'} · Round ${p.round}</span></h2>
-  <p class="lede"><span class="testtag">Test values</span> HP, armor, weapons and healing amounts are made up so you can see the layout.</p>${res}
+  <p class="lede"><span class="testtag">v0.4</span> HP 20, armor from your gear. Arc recovery amounts are still test values.</p>${res}
   <div class="res4">
    <div class="rc"><span>HP</span><b>${p.hp}/${p.hpMax}</b>${bar(p.hp,p.hpMax,'--arc')}${stp('hp',p.hp,0,p.hpMax)}</div>
    <div class="rc"><span>Armor</span><b>${p.ap}/${p.apMax}</b>${bar(p.ap,p.apMax,'--flag')}${stp('ap',p.ap,0,p.apMax)}</div>
    <div class="rc"><span>Arc Pool</span><b>${p.arc}/${pool}</b>${bar(p.arc,pool,'--arc')}${stp('arc',p.arc,0,pool)}</div>
-   <div class="rc"><span>Divine Favor</span><b>${p.favor}/5</b>${bar(p.favor,5,'--flag')}${stp('favor',p.favor,0,5)}</div>
-   <div class="rc"><span>Evasion</span><b>${ev}</b><span class="meter">Speed 3 − Silhouette ${p.sil} − ${p.still} still</span></div>
+   <div class="rc"><span>Momentum</span><b>${p.favor}/5</b>${bar(p.favor,5,'--flag')}${stp('favor',p.favor,0,5)}</div>
+   <div class="rc"><span>Evasion</span><b>${ev}</b><span class="meter">Speed ${SPD()} − Silhouette ${p.sil} − ${p.still} still</span></div>
   </div>
+  <h3>Momentum</h3>
+  <div class="actions" style="margin-top:0">${Object.entries(MOM).map(([k,m])=>`<button class="btn" data-a="pmom" data-v="${k}" ${p.favor<m[0]?'disabled':''}>${m[0]}: ${m[1]}</button>`).join('')}</div>
+  <h3>Conditions</h3>
+  <div class="pillrow">${CONDS.map(([n,d])=>`<button class="pill" title="${d}" data-a="pcond" data-v="${n}" aria-pressed="${!!p.cond[n]}">${n}</button>`).join('')}</div>
+  <p class="meter">${CONDS.filter(c=>p.cond[c[0]]).map(c=>c[0]+': '+c[1]).join(' · ')||'Tap a condition to track it.'}</p>
   <h3>Skill rolls</h3>
   <div class="row"><span class="lab">Difficulty</span></div>${pills('dn',DNS,p.dn)}
   <div class="row" style="border:0"><span class="lab">Extra modifier</span>${stp('mod',p.mod,-5,5)}</div>
   <div class="skgrid">`;
-  for(const a of ATTRS)for(const s in SKILLS[a]){
-    h+=`<button class="sk ${skillRank(s)?'':'un'}" data-a="pskill" data-v="${s}"><span>${s}</span><b>${sg(skillBonus(s))}</b></button>`;
-    if(s==='Athletics'&&abRank('Athletics','Acrobatics'))h+=`<button class="sk" data-a="pskill" data-v="Acrobatics"><span>Acrobatics</span><b>${sg(skillBonus('Athletics')+abRank('Athletics','Acrobatics'))}</b></button>`;
-  }
-  h+=`</div><p class="lede" style="font-size:13px;margin-top:6px">Greyed skills are untrained (+0).</p>
-  <h3>Attack</h3>
-  <div class="pillrow">${WEAPONS.map((x,i)=>`<button class="pill" data-a="pset" data-k="wi" data-v="${i}" aria-pressed="${p.wi===i}">${x.n} · ${x.dice[0]}d${x.dice[1]}</button>`).join('')}</div>
+  for(const a of ATTRS)for(const s in SKILLS[a])h+=`<button class="sk ${skillRank(s)?'':'un'}" data-a="pskill" data-v="${s}"><span>${s}</span><b>${sg(skillBonus(s))}</b></button>`;
+  h+=`</div><p class="lede" style="font-size:13px;margin-top:6px">Greyed skills are untrained (+0).</p>`;
+  if(kab.length){h+=`<h3>Abilities</h3><div class="abilities">${kab.map(a=>`<div class="row" style="align-items:flex-start"><span class="lab">${a.x} <span class="chip">R${a.r}</span></span><span class="fx" style="flex:1">${a.fx}</span></div>`).join('')}</div>`}
+  h+=`<h3>Attack</h3>
+  <div class="pillrow">${WEAPONS.map((x,i)=>`<button class="pill" data-a="pset" data-k="wi" data-v="${i}" aria-pressed="${p.wi===i}">${x.n} · ${x.dice[0]}d${x.dice[1]}${x.plus?'+'+x.plus:''}</button>`).join('')}</div>
   <div class="row"><span class="lab">Target range<small>Melee needs Engaged</small></span></div>
   <div class="pillrow">${BANDS.map((b,i)=>`<button class="pill" data-a="pset" data-k="band" data-v="${i}" aria-pressed="${p.band===i}">${b} · ${BANDX[i]}</button>`).join('')}</div>
   <div class="row"><span class="lab">Target evasion</span>${stp('enemyEv',p.enemyEv,0,15)}</div>
   <div class="row"><span class="lab">Target cover</span></div>${pills('tcover',COVERS.map(([n,v])=>[n,v]),p.tcover)}
   <div class="row"><span class="lab">Target critical number<small>0 = none (ECN 2–19)</small></span>${stp('ecn',p.ecn,0,19)}</div>
-  <div class="pillrow" style="margin-top:6px"><button class="pill" data-a="ptog" data-k="aim" aria-pressed="${p.aim}">Aimed Shot +1</button>${S.species==='vulkari'?`<button class="pill" data-a="ptog" data-k="pack" aria-pressed="${p.pack}">Ally within 10 ft (Pack Tactics)</button>`:''}</div>
+  <div class="pillrow" style="margin-top:6px"><button class="pill" data-a="ptog" data-k="aim" aria-pressed="${p.aim}">Aimed Shot +1</button></div>
   <div class="actions"><button class="btn primary" data-a="pattack" ${ab.blocked?'disabled':''}>Attack ${ab.blocked?'':sg(ab.b)}</button><button class="btn" data-a="pdefend">Defend (${ev}${p.cover?` + ${p.cover}`:''})</button></div>
   <p class="meter">${ab.blocked?esc(ab.blocked):esc(ab.parts.join(' · '))}</p>
   <div class="row"><span class="lab">My cover</span></div>${pills('cover',COVERS,p.cover)}
   <h3>Damage and healing</h3>
-  <div class="row"><span class="lab">Take damage<small>Armor first; a broken hit negates the rest</small></span>${stp('dmg',p.dmg,1,99)}<button class="btn" data-a="pdmg">Apply</button></div>
-  <div class="actions"><button class="btn" data-a="pheal" data-v="breather">Breather</button><button class="btn" data-a="pheal" data-v="rest">Rest</button><button class="btn" data-a="pheal" data-v="down">Downtime</button><button class="btn" data-a="pheal" data-v="hour">+1 hour (Arc)</button></div>
+  <div class="row"><span class="lab">Take damage<small>Armor first, then HP. At 0 HP: regain 5 and roll the Injury Table</small></span>${stp('dmg',p.dmg,1,99)}<button class="btn" data-a="pdmg">Apply</button></div>
+  <div class="actions"><button class="btn" data-a="pheal" data-v="breather">Breather (1d6)</button><button class="btn" data-a="pheal" data-v="rest">Rest (half HP)</button><button class="btn" data-a="pheal" data-v="down">Downtime (full)</button><button class="btn" data-a="pheal" data-v="hour">+1 hour (Arc)</button></div>
   <div class="row"><span class="lab">Spend Arc<small>Past your pool triggers Overload</small></span>${stp('spend',p.spend,1,30)}<button class="btn" data-a="parc">Spend</button></div>
   <h3>Rounds</h3>
-  <div class="actions"><button class="btn" data-a="pround" data-v="moved">Next round · I moved</button><button class="btn" data-a="pround" data-v="still">Next round · stood still</button><button class="btn" data-a="pnew">New encounter</button>${S.species==='floran'&&S.fTrait==='regen'?`<button class="btn" data-a="prapid" ${p.rapid?'disabled':''}>Rapid regen (1d8)</button>`:''}</div>
+  <div class="actions"><button class="btn" data-a="pround" data-v="moved">Next round · I moved</button><button class="btn" data-a="pround" data-v="still">Next round · stood still</button><button class="btn" data-a="pnew">New encounter</button>${S.species==='floran'?`<button class="btn" data-a="prapid" ${p.rapid?'disabled':''}>Natural Regeneration (1d4)</button>`:''}</div>
   ${S.species==='korvath'?`<p class="meter">Unyielding: ${p.uny?'used this encounter':'ready'}</p>`:''}
-  <h3>Test values</h3>
+  <h3>Adjust</h3>
   <div class="row"><span class="lab">Max HP</span>${stp('hpMax',p.hpMax,1,200)}</div>
   <div class="row"><span class="lab">Max armor</span>${stp('apMax',p.apMax,0,60)}</div>
-  <div class="row"><span class="lab">Silhouette</span>${stp('sil',p.sil,0,4)}</div>
+  <div class="row"><span class="lab">Silhouette</span>${stp('sil',p.sil,0,5)}</div>
   <h3>Roll log <button class="pill" data-a="pclear" style="padding:3px 8px;font-size:12px">Clear</button></h3>
   <ul class="log">${p.log.map(l=>`<li>${esc(l)}</li>`).join('')||'<li>Nothing yet.</li>'}</ul>`;
   return h;
@@ -581,9 +655,9 @@ function playView(){
 
 /* ---------- shell ---------- */
 const FNS=[stepSpecies,stepAttrs,stepCareer,stepSkills,stepGear,stepSheet];
-function done(i){return [!!S.species&&(S.species!=='human'||floatLeft()===0),baseSpent()===POINTS,!!S.career,ATTRS.every(a=>left(a)===0||a==='toughness'),!!(S.gear||S.notes),warnings().length===0][i]}
+function done(i){return [!!S.species&&(S.species!=='human'||floatLeft()===0),baseSpent()===POINTS,!!S.career,ATTRS.every(a=>left(a)===0),digiSpent()>0&&digiSpent()<=budget(),warnings().length===0][i]}
 function render(){
-  normalize();save();
+  normalize();WEAPONS=myWeapons();save();
   const nb=S.mode!=='build';
   if(window.EHParty)EHParty.push();
   if(window.EHAcct)EHAcct.push();
@@ -606,17 +680,16 @@ document.addEventListener('click',e=>{
   switch(t.dataset.a){
     case 'mode':S.mode=v;break;
     case 'go':S.step=+v;break;
-    case 'species':if(S.species!==v){S.species=v;S.hFloat={};S.freeAb='';for(const a of ATTRS)if(S.base[a]+0>ATTR_CAP)S.base[a]=ATTR_CAP}break;
+    case 'species':if(S.species!==v){S.species=v;S.hFloat={};S.pl.sil=(SPECIES[v]||{}).sil??1;for(const a of ATTRS)if(S.base[a]+0>ATTR_CAP)S.base[a]=ATTR_CAP}break;
     case 'ftrait':S.fTrait=v;break;
     case 'vp':S.vPrimary=v;break;
     case 'vx':S.vExtra=v;break;
     case 'hf':{const n=(S.hFloat[v]||0)+d;if(n<=0)delete S.hFloat[v];else S.hFloat[v]=n;break}
     case 'attr':S.base[v]=Math.max(0,S.base[v]+d);break;
     case 'career':S.career=v;break;
-    case 'skill':{const r=Math.max(0,skillRank(v)+d);if(r)S.skills[v]=r;else delete S.skills[v];
-      for(const x of SKILLS[at][v]){const k=abKey(v,x),cap=(S.freeAb===k?Math.max(r,1):r);if(abRank(v,x)>cap){if(cap)S.abil[k]=cap;else delete S.abil[k]}}break}
-    case 'abil':{const n=Math.max(0,(S.abil[v]||0)+d);if(n)S.abil[v]=n;else delete S.abil[v];for(const x in REQ){const q=REQ[x],k2=abKey(q[0],x);if(S.abil[k2]&&abRank(q[0],q[1])<q[2])delete S.abil[k2]}break}
-    case 'free':{S.freeAb=S.freeAb===v?'':v;break}
+    case 'skill':{const r=Math.max(0,skillRank(v)+d);if(r)S.skills[v]=r;else delete S.skills[v];break}
+    case 'buy':{const n=Math.max(0,(S.buy[v]||0)+d);if(n)S.buy[v]=Math.min(n,9);else delete S.buy[v];break}
+    case 'armor':S.armor=S.armor===v?'':v;break;
     case 'newchar':{const k={pid:S.pid,pcode:S.pcode,inParty:S.inParty,gm:S.gm};S=Object.assign(blank(),k);break}
     case 'copy_':break;
     case 'copy':{const txt=textSheet(),m=document.getElementById('msg');
