@@ -360,14 +360,21 @@ function stepCareer(){
   }
   return h;
 }
+function skillAbs(sk){
+  const out=[];
+  for(const c in CAREER_AB)if(CAREER_AB[c].sk.includes(sk))for(const [x,r,fx] of CAREER_AB[c].list)out.push({x,r,fx,c,mine:c===S.career});
+  return out.sort((a,b)=>a.r-b.r);
+}
 function stepSkills(){
-  let h=`<h2>Skills and abilities</h2><p class="lede">Every point of an attribute buys one skill rank (max 5). Abilities cost nothing in the playtest. They unlock when a parent skill reaches the ability's rank.</p>`;
+  let h=`<h2>Skills and abilities</h2><p class="lede">Every point of an attribute buys one skill rank (max 5). Abilities cost nothing in the playtest. They unlock when a parent skill reaches the ability's rank. Abilities under each skill belong to a career; yours are bright, others are dimmed for reference.</p>`;
   for(const a of ATTRS){
     const pool=final(a),l=left(a);
     h+=`<h3>${AL[a]} <span class="meter ${l<0?'over':''}">· <b>${l}</b> of ${pool} left</span></h3>`;
     for(const s in SKILLS[a]){
       const r=skillRank(s);
       h+=`<div class="row"><span class="lab">${s}<small>${SKDESC[s]||''}</small></span><span class="step"><button data-a="skill" data-v="${s}" data-at="${a}" data-d="-1" ${r<=0?'disabled':''}>−</button><output>${r}</output><button data-a="skill" data-v="${s}" data-at="${a}" data-d="1" ${l<=0||r>=5?'disabled':''}>+</button></span></div>`;
+      const sa=skillAbs(s);
+      if(sa.length)h+='<div class="abilities">'+sa.map(x=>`<div class="row" style="align-items:flex-start;${x.mine&&r>=x.r?'':'opacity:.55'}"><span class="lab">${x.x} <span class="chip">R${x.r}</span> <span class="chip">${x.c}</span>${x.mine?(r>=x.r?'<small>Unlocked</small>':`<small>Needs ${s} ${x.r}</small>`):''}</span><span class="fx" style="flex:1">${x.fx}</span></div>`).join('')+'</div>';
     }
   }
   const c=CAREER_AB[S.career];
