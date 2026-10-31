@@ -76,7 +76,7 @@ function view(){
   for(const id of ids){
     const m=members[id],i=m.info||{},l=m.live;
     h+=`<div class="pcard"><h4>${/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(i.img||'')?`<img src="${i.img}" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:8px">`:''}${esc(i.name||'Unnamed')}${id===S.pid?' <span class="chip">you</span>':''}</h4><div class="sub2">${esc(i.species||'—')} · ${esc(i.career||'—')}${l?` · Evasion ${l.ev}`:''}</div>`;
-    if(l){h+=row(id,m,'HP','hp','--arc',l.hpMax)+row(id,m,'Armor','ap','--flag',l.apMax)+row(id,m,'Arc','arc','--arc',l.arcMax)+row(id,m,'Favor','favor','--flag',5)}
+    if(l){h+=row(id,m,'HP','hp','--arc',l.hpMax)+row(id,m,'Armor','ap','--flag',l.apMax)+row(id,m,'Arc','arc','--arc',l.arcMax)+row(id,m,'Momentum','favor','--flag',5)}
     if(i.attrs)h+=`<div class="chips" style="margin:8px 0">${ATTRS.map(a=>`<span class="chip">${AL[a].slice(0,3)} ${i.attrs[a]??0}</span>`).join('')}</div>`;
     h+=`<button class="pill" data-a="ptyopen" data-id="${id}" aria-pressed="${!!open[id]}">${open[id]?'Hide sheet':'Show sheet'}</button>${open[id]&&i.sheet?`<pre style="margin-top:8px">${esc(i.sheet)}</pre>`:''}</div>`;
   }
