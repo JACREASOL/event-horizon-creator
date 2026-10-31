@@ -223,6 +223,44 @@ const SPECIES={
     traits:[['Dual Breathing','Breathe underwater indefinitely.'],['Limb Regrowth','Regrow a lost limb over 1 Downtime. Cannot be permanently dismembered.'],['Many Appendages','Hold and operate multiple items at once. No off-hand penalty.'],['Crowd Favorite','+2 to Performance and Persuasion in public or social settings.'],['Flexible Form','Fit through spaces that look too small. No roll unless truly impossible.']],
     flag:'Silhouette 0 and Speed 2 give Evasion 2, the same as a human. Many Appendages has no cap on a second attack yet.'}
 };
+
+/* General skill abilities (carried over from the earlier ability list). Free in the playtest; ranked ones scale with the skill rank. [name, skill, min skill rank, max rank, effect(n)] */
+const SNEAKT={1:'+1 to Sneak checks. Move quietly.',2:'+1. Move at a faster pace while staying stealthy.',3:'+2 to Sneak checks.',4:'+2. Gear no longer penalizes sneaking.',5:'+3 to Sneak checks.'};
+const rngB=r=>Math.floor((r+1)/2);
+const GEN=[
+ ['Heavy Lifting','Athletics',1,5,n=>`Lift about ${150+50*(n-1)} lbs. without a check.`],
+ ['Acrobatics','Athletics',1,5,n=>`+${n} to Acrobatics rolls: tumbling, balance, agile movement.`],
+ ['Unstoppable','Athletics',2,1,()=>'Immune to Slowed. Difficult terrain costs no extra movement.'],
+ ['Grapple','Melee Combat',1,5,n=>`Attack vs. Defense at +${n}. On success the target is restrained until they win a break-free contest.`],
+ ['Disarm','Melee Combat',1,5,()=>'Attack vs. Defense. Success knocks the weapon loose; a strong success may let you seize it.'],
+ ['Brutal Strike','Melee Combat',1,3,n=>`A melee hit applies Weakened. ${n} use${n>1?'s':''} per combat. Weakened lasts 1 turn (to confirm).`],
+ ['Relentless','Melee Combat',1,1,()=>'After dropping an enemy to 0 HP, move up to 10 ft as a free action.'],
+ ['Juggernaut','Melee Combat',2,1,()=>'When you Sprint, move through enemies; each takes 1d6 damage.'],
+ ['Melee Weapon Familiarity','Melee Combat',2,1,()=>'Pick one melee weapon type; on a natural 19+ your attack bypasses armor points.'],
+ ['Killing Blow','Melee Combat',3,1,()=>'A melee critical hit forces the target to roll on the injury table regardless of remaining HP.'],
+ ['Rampage','Melee Combat',3,1,()=>'Once per combat, make two melee attacks as one Action.'],
+ ['Close Range','Firearms',1,5,n=>`+${rngB(n)} to attack with weapons suited to 6–30 ft (+1 per 2 ranks, assumed).`],
+ ['Medium Range','Firearms',1,5,n=>`+${rngB(n)} to attack with weapons suited to 31–90 ft (+1 per 2 ranks, assumed).`],
+ ['Long Range','Firearms',1,5,n=>`+${rngB(n)} to attack with weapons suited to 91–180 ft (+1 per 2 ranks, assumed).`],
+ ['Weapon Familiarity','Firearms',1,1,()=>'Pick one weapon type; ignore range penalties with it.'],
+ ['Weapon Mastery','Firearms',2,1,()=>'Needs Weapon Familiarity. Pick one weapon type; its attacks deal one extra damage die.'],
+ ['Patient','Firearms',1,1,()=>'You take no Standing Still penalty to Evasion. No attack bonus.'],
+ ['Weak Point','Firearms',2,1,()=>'Once per combat, one attack that hits ignores all AP.'],
+ ['Long Shot','Firearms',2,3,n=>`Your maximum range extends ${n} range band${n>1?'s':''}.`],
+ ['Controlled Breathing','Firearms',2,1,()=>'Once per combat, reroll one attack die and take the higher.'],
+ ['Apex Predator','Firearms',3,1,()=>'Enemies you attack at range get no cover bonus to Evasion.'],
+ ['Sneak','Stealth',1,5,n=>SNEAKT[n]],
+ ['Eavesdropping','Perception',1,5,n=>`Listen through barriers or at a distance. Rank ${n} improves range and clarity.`],
+ ['Combat Awareness','Perception',5,1,()=>'Never surprised. Always act in the first round even if ambushed.'],
+ ['Read the Room','Negotiation',1,5,n=>`Insight into a person or place. +${n} on a following Negotiation or Deception check against them.`],
+ ['Battlefield Discipline','Leadership',2,1,()=>'Allies within Medium range who can see or hear you are immune to Panicked.'],
+ ['Battle Hardened','Endurance',1,5,n=>`+${5*n} to injury table rolls.`],
+ ['Second Wind','Endurance',2,1,()=>'Once per combat, free action: recover 1d8 HP.'],
+ ['Iron Will','Endurance',3,1,()=>'Once per session, treat one injury table roll as 76–100.'],
+ ['Thick Skin','Endurance',1,3,n=>`+${4*n} max HP (v0.4 fixes HP at 20, so this is not applied automatically).`]];
+function genAbs(){
+  return GEN.map(([x,sk,r,cap,f])=>{const sr=skillRank(sk),n=Math.max(1,Math.min(cap,sr));return{x,s:sk,r,ok:sr>=r,fx:f(n),c:'General',gen:true}});
+}
 const CAREERS=[
   ['Merchant',1],['Scholar',1],['Medic',1],['Pilot',2],['Engineer',2],['Investigator',2],
   ['Soldier',3],['Bounty Hunter',3],['Smuggler',3],['Hacker',3],['Special Operations',4],['Deep Cover Agent',4]];
@@ -308,7 +346,7 @@ function myAbilities(){
   const best=Math.max(0,...c.sk.map(skillRank));
   return c.list.map(([x,r,fx])=>({x,r,fx,ok:best>=r,s:c.label}));
 }
-const knownAbilities=()=>myAbilities().filter(a=>a.ok);
+const knownAbilities=()=>myAbilities().filter(a=>a.ok).concat(genAbs().filter(a=>a.ok));
 function abList(list,showLock){
   let h='<div class="abilities">';
   for(const a of list)h+=`<div class="row" style="align-items:flex-start;${a.ok===false?'opacity:.6':''}"><span class="lab">${a.x} <span class="chip">R${a.r}</span>${a.ok===false?`<small>Locked until a parent skill reaches rank ${a.r}</small>`:''}</span><span class="fx" style="flex:1">${a.fx}</span></div>`;
@@ -363,6 +401,7 @@ function stepCareer(){
 function skillAbs(sk){
   const out=[];
   for(const c in CAREER_AB)if(CAREER_AB[c].sk.includes(sk))for(const [x,r,fx] of CAREER_AB[c].list)out.push({x,r,fx,c,mine:c===S.career});
+  for(const g of genAbs())if(g.s===sk)out.push({x:g.x,r:g.r,fx:g.fx,c:'General',mine:true});
   return out.sort((a,b)=>a.r-b.r);
 }
 function stepSkills(){
@@ -493,7 +532,7 @@ function PL(){
   p.arc=Math.min(p.arc,arcPool());p.hp=Math.min(p.hp,p.hpMax);p.ap=Math.min(p.ap,p.apMax);
   return p;
 }
-const skillBonus=s=>skillRank(s);
+const skillBonus=s=>skillRank(s)+(s==='Stealth'&&skillRank('Stealth')>0?({1:1,2:1,3:2,4:2,5:3})[skillRank('Stealth')]:0);
 const evasion=()=>{const p=PL();return Math.max(0,Math.floor(SPD())-p.sil-p.still)};
 function setRes(h,lines,tone){const p=PL();p.res={h,lines,tone};p.log.unshift(`R${p.round} · ${h}`);p.log=p.log.slice(0,25)}
 function doSkill(label,bonus){
@@ -515,6 +554,7 @@ function atkBonus(){
   const p=PL(),w=WEAPONS[p.wi],rp=rangePen();
   if(rp.blocked)return{blocked:rp.blocked};
   let b=skillRank(w.sk);const parts=[`${w.sk} ${b}`];
+  if(!w.melee&&skillRank('Firearms')){const nm=['','Close Range','Medium Range','Long Range'][w.band];if(nm){const v=rngB(skillRank('Firearms'));b+=v;parts.push(`${nm} +${v}`)}}
   if(rp.pen){b+=rp.pen}parts.push(...rp.notes);
   if(p.aim&&!w.melee){b+=1;parts.push('Aimed Shot +1')}
   if(p.cond.Prone){b-=2;parts.push('Prone −2')}
