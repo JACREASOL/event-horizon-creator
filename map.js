@@ -132,7 +132,14 @@ function focusMe(){
   const{w,h}=dm();Z.z=clampc(Math.max(Z.z,Math.min(3,Math.max(w,h)/6)),1,5);
   Z.x=m.x*CS+CS/2-w*CS/Z.z/2;Z.y=m.y*CS+CS/2-h*CS/Z.z/2;
 }
-function learned(){return knownAbilities().map(a=>({s:a.s,x:a.x,r:a.r,fx:a.fx}))}
+function learned(){
+  const out=[];
+  for(const at in SKILLS)for(const s in SKILLS[at])for(const x of SKILLS[at][s]){
+    const r=abRank(s,x)||(S.freeAb===abKey(s,x)?1:0);
+    if(r&&AB[x])out.push({s,x,r,fx:AB[x](r)});
+  }
+  return out;
+}
 function fsView(){
   const me=T()[S.pid]||{n:'Me'},i=info(),t=sel&&T()[sel],p=PL(),{w,h}=dm();
   const sc=Math.min(innerWidth/w,innerHeight/h),res=p.res;
@@ -164,8 +171,8 @@ function fsView(){
     <div class="row"><span class="lab">Target evasion</span><span class="step"><button data-a="mapev" data-d="-1">−</button><output>${p.enemyEv}</output><button data-a="mapev" data-d="1">+</button></span></div>`;
     if(sk.length)h2+=`<h4 style="margin:10px 0 4px">Skill checks <span class="meter">vs DN ${p.dn}</span></h4><div class="pillrow">${sk.map(s=>`<button class="pill" data-a="mapskill" data-v="${esc(s)}">${esc(s)} ${sg(skillBonus(s))}</button>`).join('')}</div>`;
     h2+=`<h4 style="margin:10px 0 4px">Abilities</h4>`;
-    if(!ab.length)h2+=`<p class="lede" style="font-size:13px;margin:0">None unlocked yet. Raise your skill ranks on the Skills step.</p>`;
-    for(const a of ab)h2+=`<div class="row" style="align-items:flex-start"><span class="lab">${esc(a.x)}${' R'+a.r}<small>${esc(a.s)}</small></span><span class="fx" style="flex:1">${esc(a.fx)}</span></div>`;
+    if(!ab.length)h2+=`<p class="lede" style="font-size:13px;margin:0">None learned yet. Buy some on the Skills step.</p>`;
+    for(const a of ab)h2+=`<div class="row" style="align-items:flex-start"><span class="lab">${esc(a.x)}${a.r>1?' R'+a.r:''}<small>${esc(a.s)}</small></span><span class="fx" style="flex:1">${esc(a.fx)}</span>${a.x==='Second Wind'?'<button class="btn" data-a="mapsw">Use</button>':''}</div>`;
     h2+=`</div>`;
   }
   return h2+'</div>';
