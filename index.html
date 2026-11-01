@@ -73,6 +73,7 @@ h3{font:600 13px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;col
 .meter{font:500 13px var(--f-mono);color:var(--muted)}
 .meter b{color:var(--ink)}
 .meter.over{color:var(--bad)}
+.tgl{background:none;border:0;color:var(--muted,#9aa);font-size:16px;line-height:1;padding:2px 6px;min-width:28px;min-height:28px;cursor:pointer}
 .abilities{margin:4px 0 8px 14px;padding-left:12px;border-left:2px solid var(--line)}
 .abilities .row{border-bottom:0;padding:5px 0}
 .fx{flex-basis:100%;color:var(--muted);font-size:13px}
@@ -316,17 +317,20 @@ function stepCareer(){
 }
 function stepSkills(){
   let h=`<h2>Skills and abilities</h2><p class="lede">Every point of an attribute is one skill rank. Abilities are bought with the same pool and cannot rank higher than their skill. Each ability shows its cost; \"est.\" costs are placeholders.</p>`;
+  S.col=S.col||{};
+  h+=`<div class="actions" style="margin:0 0 6px"><button class="btn" data-a="col" data-v="*open">Expand all</button><button class="btn" data-a="col" data-v="*shut">Collapse all</button></div>`;
   for(const a of ATTRS){
-    const pool=final(a),l=left(a);
-    h+=`<h3>${AL[a]} <span class="meter ${l<0?'over':''}">· <b>${l}</b> of ${pool} left</span></h3>`;
+    const pool=final(a),l=left(a),ac=!!S.col['a:'+a];
+    h+=`<h3><button class="tgl" data-a="col" data-v="a:${a}" aria-expanded="${!ac}">${ac?'▸':'▾'}</button> ${AL[a]} <span class="meter ${l<0?'over':''}">· <b>${l}</b> of ${pool} left</span></h3>`;
+    if(ac)continue;
     const sk=SKILLS[a];
     if(!Object.keys(sk).length){h+=`<p class="lede" style="font-size:13px">Toughness has one skill so far.</p>`;continue}
     for(const s in sk){
-      const r=skillRank(s);
-      h+=`<div class="row"><span class="lab">${s}</span><span class="step"><button data-a="skill" data-v="${s}" data-at="${a}" data-d="-1" ${r<=0?'disabled':''}>−</button><output>${r}</output><button data-a="skill" data-v="${s}" data-at="${a}" data-d="1" ${l<=0||r>=5?'disabled':''}>+</button></span></div>`;
+      const r=skillRank(s),sc=!!S.col['s:'+s],nab=sk[s].filter(x=>abRank(s,x)>0).length;
+      h+=`<div class="row"><span class="lab"><button class="tgl" data-a="col" data-v="s:${s}" aria-expanded="${!sc}">${sc?'▸':'▾'}</button> ${s}${sc&&nab?` <span class="chip">${nab} abilit${nab>1?'ies':'y'}</span>`:''}</span><span class="step"><button data-a="skill" data-v="${s}" data-at="${a}" data-d="-1" ${r<=0?'disabled':''}>−</button><output>${r}</output><button data-a="skill" data-v="${s}" data-at="${a}" data-d="1" ${l<=0||r>=5?'disabled':''}>+</button></span></div>`;
       const abs=sk[s];
       const showAbs=abs.filter(x=>r>0||S.freeAb===abKey(s,x));
-      if(showAbs.length){
+      if(showAbs.length&&!sc){
         h+='<div class="abilities">';
         for(const x of showAbs){
           const k=abKey(s,x),ar=abRank(s,x),free=S.freeAb===k;
@@ -611,6 +615,7 @@ document.addEventListener('click',e=>{
     case 'vp':S.vPrimary=v;break;
     case 'vx':S.vExtra=v;break;
     case 'hf':{const n=(S.hFloat[v]||0)+d;if(n<=0)delete S.hFloat[v];else S.hFloat[v]=n;break}
+    case 'col':{S.col=S.col||{};if(v==='*open')S.col={};else if(v==='*shut'){S.col={};for(const a of ATTRS){for(const k in SKILLS[a])S.col['s:'+k]=1}}else if(S.col[v])delete S.col[v];else S.col[v]=1;break}
     case 'attr':S.base[v]=Math.max(0,S.base[v]+d);break;
     case 'career':S.career=v;break;
     case 'skill':{const r=Math.max(0,skillRank(v)+d);if(r)S.skills[v]=r;else delete S.skills[v];
