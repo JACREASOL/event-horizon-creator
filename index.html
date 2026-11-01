@@ -263,6 +263,32 @@ const SPECIES={
     traits:[['Pack Tactics','With an ally within 10 ft: +1 to attack rolls and +1 to defense.'],['Keen Senses','+1d6 to Perception checks using smell or hearing.']],
     flag:'Pack Tactics gives a flat +1 attack and +1 defense, bigger than a single ability rank. Worth watching on a d20 with 5-point difficulty steps.'}
 };
+const DIGI={1:500,2:800,3:1200,4:2000};
+const TIERS=['Cheap','Standard','Military','Black Market'], TPRICE=[50,200,800,1500];
+const WTYPES=[
+  {n:'Pistol',d:[1,4],ft:50,band:2,hands:1,mag:8,tr:'Can fire while in melee.',pistol:true},
+  {n:'SMG',d:[2,4],ft:30,band:1,hands:1,mag:12,tr:'Short range, large mag.'},
+  {n:'Shotgun',d:[4,4],ft:30,band:1,hands:2,mag:4,tr:'+1 damage die within 15 ft.'},
+  {n:'Rifle',d:[1,6],ft:100,band:3,hands:2,mag:6,tr:'-1 damage within 10 ft.'},
+  {n:'Blade / Blunt',d:[1,4],ft:5,band:0,hands:1,mag:0,tr:'No reload. Muscles adds to damage.',melee:true}];
+const ARMORS=[
+  {id:'scrap',n:'Scrap Plate',tier:'Cheap',ap:15,price:300,perk:'No perk.'},
+  {id:'cheapfull',n:'Cheap full set',tier:'Cheap',ap:15,price:300,perk:''},
+  {id:'stdfull',n:'Standard full set',tier:'Standard',ap:20,price:1200,perk:''},
+  {id:'medic',n:'Field Medic Rig',tier:'Standard',ap:20,price:1200,perk:'Medkits heal +2 HP when you use them (any 2 pieces).'},
+  {id:'recon',n:'Recon Suit',tier:'Standard',ap:20,price:1200,perk:'Ghost Step: ignore the -1 Evasion for standing still, +2 to Stealth (all 6 pieces).'},
+  {id:'signal',n:'Signal Weave',tier:'Standard',ap:20,price:1200,perk:'+1 Bandwidth, +1 to Hacking rolls (any 3 pieces incl. head).'},
+  {id:'milfull',n:'Military full set',tier:'Military',ap:25,price:4800,perk:''},
+  {id:'assault',n:'Assault Frame',tier:'Military',ap:25,price:4800,perk:'Overdrive: once per Rest, take an extra Move (any 4 pieces).'},
+  {id:'bmfull',n:'Black Market full set',tier:'Black Market',ap:30,price:6000,perk:'Plus a perk.'},
+  {id:'phase',n:'Phase Shroud',tier:'Black Market',ap:30,price:9000,perk:'Blink Plate: once per Rest, negate one hit\'s damage, then Slowed 1 turn (all 6 pieces).'}];
+const ITEMS=[
+  ['Medkit',100,'1 Action, restores 5 HP. One use.','Healing'],['Stim Injector',75,'1 Action, +2 Speed for 3 turns. Crash: -1 to rolls for 1 turn.','Healing'],['Trauma Foam',60,'Stabilizes a 0 HP ally without a roll. One use.','Healing'],['Regen Patch',150,'Heals 1 HP per turn for 5 turns.','Healing'],['Revive Kit',400,'Revives an ally who just died if used within 2 turns. One per session.','Healing'],
+  ['Hacking Rig',200,'Grants the Hacker their Bandwidth pool.','Tech'],['Toolkit',100,'Needed for repairs and modifications.','Tech'],['Ghost Spike',100,'One use. Bypasses a basic lock or terminal. Needs rank 1 in the relevant skill.','Tech'],['Signal Jammer',200,'Blocks comms and drones within 50 ft for 3 turns.','Tech'],['Drone Hijacker',250,'Take over a drone for 3 turns.','Tech'],['Bandwidth Cell',75,'One use. Restores 2 Bandwidth.','Tech'],['Repair Drone',200,'Restores 2 AP per turn to one armor piece for 3 turns.','Tech'],
+  ['Scanner',50,'+2 on detection checks.','Recon'],['Forensic Kit',150,'+2 to examining scenes and bodies.','Recon'],['Lie Sensor',200,'Reads stress. +2 vs. deception.','Recon'],['Tracker Tag',75,'Sticks to a target. Tracks for 24 hours.','Recon'],['Directional Earpiece',0,'+3 to Eavesdropping with range and line of sight. Price not set.','Recon'],
+  ['Stun Cuffs',100,'Binds a Prone target. Cannot act until freed.','Combat'],['Net Launcher',200,'Range 30 ft. Target is Slowed until freed.','Combat'],['Stun Baton',250,'1d4 melee. Target is Slowed 1 turn on hit.','Combat'],['Grenade',100,'1d8 damage, 3 ft diameter. Evasion roll or +1d8.','Combat'],['Smoke Grenade',50,'Blocks line of sight, 20 ft radius, 3 turns.','Combat'],['Flashbang',100,'Targets in 20 ft lose next Action. One per fight.','Combat'],['Welder Torch',150,'1d6 melee. Cuts through doors.','Combat'],['Deployable Turret',500,'1d6 shots, 8 uses. Needs a Toolkit to set up.','Combat'],['Gravity Grenade',1500,'Black Market. Single use. Zero-G, Heavy-G, or Implosion mode, 20 ft radius.','Combat'],
+  ['Grapple Line',100,'Climb or swing 60 ft.','Mobility'],['Jetpack',500,'Fly at Speed for 3 turns. One use per Rest.','Mobility'],['Cloak Field',800,'Invisible for 3 turns. Breaks when you attack.','Mobility'],['Energy Shield',700,'+10 AP pool, regenerates 2 AP/turn.','Defense']];
+const KITS=[['500','Standard weapon (200), full Cheap armor (300).'],['800','Standard weapon (200), full Cheap armor (300), Medkit and Scanner (150), 150 spare.'],['1,200','Military weapon (800), full Cheap armor (300), Medkit (100).'],['2,000','Military weapon (800), full Standard armor (1,200).']];
 const CAREERS=[
   ['Merchant',1],['Scholar',1],['Medic',1],['Pilot',2],['Engineer',2],['Investigator',2],
   ['Soldier',3],['Bounty Hunter',3],['Smuggler',3],['Hacker',3],['Dreadknight',4],['Black-market Operative',4]];
@@ -270,7 +296,7 @@ const TIER={1:'Standard',2:'Moderate',3:'Higher',4:'Highest'};
 const STEPS=['Species','Attributes','Career','Skills','Gear','Sheet'];
 
 const blank=()=>({mode:'build',pcode:'',pid:'',gm:false,inParty:false,pl:{init:false,hp:0,hpMax:0,ap:12,apMax:12,arc:0,favor:0,sil:1,still:0,round:1,uny:false,rapid:false,wi:0,band:1,cover:0,tcover:0,aim:false,pack:false,enemyEv:5,ecn:0,dn:13,mod:0,dmg:3,spend:1,res:null,last:null,log:[]},step:0,name:'',species:'',vPrimary:'muscles',vExtra:'charm',fTrait:'regen',hFloat:{},
-  base:Object.fromEntries(ATTRS.map(a=>[a,0])),career:'',skills:{},abil:{},freeAb:'',gear:'',notes:''});
+  base:Object.fromEntries(ATTRS.map(a=>[a,0])),career:'',skills:{},abil:{},freeAb:'',buy:{},armor:'',gear:'',notes:''});
 let S=blank();
 try{const raw=localStorage.getItem('eh-char');if(raw){S=Object.assign(blank(),JSON.parse(raw))}}catch(e){}
 function save(){try{localStorage.setItem('eh-char',JSON.stringify(S))}catch(e){}}
@@ -418,13 +444,39 @@ function stepSkills(){
   }
   return h;
 }
+const buyN=k=>S.buy[k]||0;
+const openD={};document.addEventListener('toggle',e=>{const w=e.target.dataset&&e.target.dataset.w;if(w)openD[w]=e.target.open},true);
+function digiSpent(){
+  let n=0;
+  for(const k in S.buy){const q=S.buy[k],p=k.split('|');
+    if(p[0]==='w')n+=TPRICE[+p[2]]*q;else{const it=ITEMS.find(i=>i[0]===p[1]);if(it)n+=it[1]*q}}
+  const ar=ARMORS.find(a=>a.id===S.armor);if(ar)n+=ar.price;
+  return n;
+}
+const budget=()=>{const t=(CAREERS.find(c=>c[0]===S.career)||[])[1];return t?DIGI[t]:0};
 function stepGear(){
-  const t=(CAREERS.find(c=>c[0]===S.career)||[])[1];
-  return `<h2>Equipment and notes</h2>
-  <p class="lede">${t?`Your career is Tier ${t}, so you start with a ${TIER[t]} Digi budget. The exact Digi amounts are not defined in v0.3.`:'Pick a career to see your starting Digi tier.'}</p>
-  <div class="stats"><div class="stat"><span>Cheap</span>Basic tools, civilian clothes</div><div class="stat"><span>Standard</span>Service pistols, light armor</div><div class="stat"><span>Military</span>Restricted; needs connections</div><div class="stat"><span>Black Market</span>Illegal or Arc tech</div></div>
-  <label class="f" for="gear">Starting gear</label><textarea id="gear" data-f="gear" placeholder="Pistol, light armor, field kit...">${esc(S.gear)}</textarea>
+  const t=(CAREERS.find(c=>c[0]===S.career)||[])[1],bud=budget(),sp=digiSpent();
+  let h=`<h2>Equipment</h2>
+  <p class="lede">${t?`Your career is Tier ${t}, so you start with ${bud.toLocaleString()} Digi. Gear is not career-locked.`:'Pick a career to see your starting Digi.'}</p>
+  <p class="meter ${sp>bud?'over':''}"><b>${(bud-sp).toLocaleString()}</b> of ${bud.toLocaleString()} Digi left</p>
+  <h3>Armor <span class="meter">AP from worn pieces stacks. Sets here are bought whole.</span></h3><div class="grid">`;
+  for(const a of ARMORS)h+=`<button class="card" data-a="armor" data-v="${a.id}" aria-pressed="${S.armor===a.id}"><strong>${a.n}</strong><small>${a.perk||a.tier}</small><span class="chips"><span class="chip">${a.ap} AP</span><span class="chip">${a.price.toLocaleString()} Digi</span></span></button>`;
+  h+=`</div><h3>Weapons</h3><p class="lede" style="font-size:13px">Tier sets price. Damage comes from the weapon type. Reload costs one Action.</p>`;
+  for(const T of WTYPES){
+    h+=`<details class="detail" data-w="${T.n}" ${openD[T.n]?'open':''} style="margin-bottom:6px"><summary><b>${T.n}</b> · ${T.d[0]}d${T.d[1]}${T.melee?' + Muscles':''} · ${T.ft} ft · ${T.hands} hand${T.hands>1?'s':''}${T.mag?` · mag ${T.mag}`:''}</summary><p class="meter">${T.tr}</p>`;
+    TIERS.forEach((tn,i)=>{const k=`w|${T.n}|${i}`;h+=`<div class="row"><span class="lab">${tn} <span class="chip">${TPRICE[i]} Digi</span></span><span class="step"><button data-a="buy" data-v="${k}" data-d="-1" ${!buyN(k)?'disabled':''}>−</button><output>${buyN(k)}</output><button data-a="buy" data-v="${k}" data-d="1" ${buyN(k)>=9?'disabled':''}>+</button></span></div>`});
+    h+='</details>';
+  }
+  let cat='';
+  for(const [n,pr,fx,c] of ITEMS){
+    if(c!==cat){cat=c;h+=`<h3>${c}</h3>`}
+    const k='i|'+n;
+    h+=`<div class="row" style="align-items:flex-start"><span class="lab">${n} <span class="chip">${pr?pr+' Digi':'—'}</span><small>${fx}</small></span><span class="step"><button data-a="buy" data-v="${k}" data-d="-1" ${!buyN(k)?'disabled':''}>−</button><output>${buyN(k)}</output><button data-a="buy" data-v="${k}" data-d="1" ${buyN(k)>=9?'disabled':''}>+</button></span></div>`;
+  }
+  h+=`<h3>Suggested kits</h3><div class="stats">${KITS.map(k=>`<div class="stat"><span>${k[0]} Digi</span>${k[1]}</div>`).join('')}</div>
+  <label class="f" for="gear">Other gear</label><textarea id="gear" data-f="gear" placeholder="Anything else you carry...">${esc(S.gear)}</textarea>
   <label class="f" for="notes">Contacts, background, Divine Favor notes</label><textarea id="notes" data-f="notes">${esc(S.notes)}</textarea>`;
+  return h;
 }
 function warnings(){
   const w=[];
@@ -434,6 +486,7 @@ function warnings(){
   if(baseSpent()<POINTS)w.push(`${POINTS-baseSpent()} attribute points unspent.`);
   if(!S.career)w.push('No career chosen.');
   for(const a of ATTRS){if(a!=='toughness'&&left(a)>0)w.push(`${left(a)} ${AL[a]} rank${left(a)>1?'s':''} unspent.`)}
+  if(digiSpent()>budget())w.push(`Over budget by ${digiSpent()-budget()} Digi.`);
   return w;
 }
 function textSheet(){
@@ -460,7 +513,9 @@ function textSheet(){
   {const cc=CAREER_AB[S.career];if(cc){const own=cc.list.filter(l=>cc.sk.some(k=>abRank(k,'C:'+l[0])));if(own.length){L.push('',`${S.career.toUpperCase()} ABILITIES`);for(const l of own)L.push(`- ${l[0]}: ${l[2]}`)}}}
   if(S.freeAb){const [s,x]=S.freeAb.split('|');if(!abRank(s,x))L.push(`- Free ability: ${x} R1`)}
   if(!any&&!S.freeAb)L.push('- none');
-  if(S.gear.trim()){L.push('','GEAR',S.gear.trim())}
+  {const gl=[];for(const k in S.buy){const p=k.split('|'),q=S.buy[k];gl.push(p[0]==='w'?`${q}× ${p[1]} (${TIERS[+p[2]]})`:`${q}× ${p[1]}`)}
+   const ar=ARMORS.find(a=>a.id===S.armor);if(ar)gl.unshift(`${ar.n} (${ar.ap} AP)`);
+   if(gl.length||S.gear.trim()){L.push('',`GEAR  (${digiSpent()} of ${budget()} Digi spent)`);for(const g of gl)L.push('- '+g);if(S.gear.trim())L.push(S.gear.trim())}}
   if(S.notes.trim()){L.push('','NOTES',S.notes.trim())}
   return L.join('\n');
 }
@@ -655,7 +710,7 @@ function playView(){
 
 /* ---------- shell ---------- */
 const FNS=[stepSpecies,stepAttrs,stepCareer,stepSkills,stepGear,stepSheet];
-function done(i){return [!!S.species&&(S.species!=='human'||floatLeft()===0),baseSpent()===POINTS,!!S.career,ATTRS.every(a=>left(a)===0||a==='toughness'),!!(S.gear||S.notes),warnings().length===0][i]}
+function done(i){return [!!S.species&&(S.species!=='human'||floatLeft()===0),baseSpent()===POINTS,!!S.career,ATTRS.every(a=>left(a)===0||a==='toughness'),(digiSpent()>0&&digiSpent()<=budget())||!!(S.gear||S.notes),warnings().length===0][i]}
 function render(){
   normalize();save();
   const nb=S.mode!=='build';
@@ -690,6 +745,8 @@ document.addEventListener('click',e=>{
     case 'career':S.career=v;break;
     case 'skill':{const r=Math.max(0,skillRank(v)+d);if(r)S.skills[v]=r;else delete S.skills[v];
       for(const x of SKILLS[at][v]){const k=abKey(v,x),cap=(S.freeAb===k?Math.max(r,1):r);if(abRank(v,x)>cap){if(cap)S.abil[k]=cap;else delete S.abil[k]}}break}
+    case 'buy':{const n=Math.max(0,(S.buy[v]||0)+d);if(n)S.buy[v]=Math.min(n,9);else delete S.buy[v];break}
+    case 'armor':S.armor=S.armor===v?'':v;break;
     case 'abc':{const cc=CAREER_AB[S.career];if(!cc)break;const it=cc.list.find(l=>l[0]===v);if(!it)break;
       if(d<0){for(const k of cc.sk)delete S.abil[abKey(k,'C:'+v)]}
       else if(!cc.sk.some(k=>abRank(k,'C:'+v))){const k=cc.sk.filter(k=>skillRank(k)>0&&abLeft(k)>=it[1]).sort((a,b)=>abLeft(b)-abLeft(a))[0];if(k)S.abil[abKey(k,'C:'+v)]=1}
