@@ -262,7 +262,7 @@ const REQ={'Weapon Mastery':['needs Weapon Familiarity',()=>abRank('Firearms','W
 /* Abilities are bought: a skill's ranks are its ability pool. Career abilities cost their R number in points (assumed). */
 function catalog(){
   const out=[];
-  for(const c in CAREER_AB)for(const sk of CAREER_AB[c].sk)for(const [x,r,fx] of CAREER_AB[c].list)out.push({k:abKey(sk,x),x,s:sk,cost:r,max:1,f:()=>fx,c,mine:c===S.career});
+  {const c=S.career;if(CAREER_AB[c])for(const sk of CAREER_AB[c].sk)for(const [x,r,fx] of CAREER_AB[c].list)out.push({k:abKey(sk,x),x,s:sk,cost:r,max:1,f:()=>fx,c,mine:true,career:true});}
   for(const [x,sk,cost,max,f] of GEN)out.push({k:abKey(sk,x),x,s:sk,cost,max,f,c:'General',mine:true});
   return out;
 }
@@ -414,21 +414,33 @@ function stepCareer(){
   return h;
 }
 function stepSkills(){
-  let h=`<h2>Skills and abilities</h2><p class="lede">Each attribute point buys one skill rank (max 5). A skill's ranks are also its ability pool: spend them on that skill's abilities. Ranked abilities cost 1 point per rank. Bright abilities are yours (General and your career); dimmed ones belong to other careers.</p>`;
+  let h=`<h2>Skills and abilities</h2><p class="lede">Each attribute point buys one skill rank (max 5). A skill's ranks are also its ability pool: spend them on that skill's abilities. Ranked abilities cost 1 point per rank. General abilities sit under their skill. Career abilities are at the bottom and are paid from your career's parent skills.</p>`;
   for(const a of ATTRS){
     const pool=final(a),l=left(a);
     h+=`<h3>${AL[a]} <span class="meter ${l<0?'over':''}">· <b>${l}</b> of ${pool} left</span></h3>`;
     for(const s in SKILLS[a]){
       const r=skillRank(s),al=abLeft(s);
       h+=`<div class="row"><span class="lab">${s}<small>${SKDESC[s]||''}</small></span><span class="step"><button data-a="skill" data-v="${s}" data-at="${a}" data-d="-1" ${r<=0?'disabled':''}>−</button><output>${r}</output><button data-a="skill" data-v="${s}" data-at="${a}" data-d="1" ${l<=0||r>=5?'disabled':''}>+</button></span></div>`;
-      const sa=catalog().filter(e=>e.s===s).sort((x,y)=>(y.mine-x.mine)||x.cost-y.cost);
+      const sa=catalog().filter(e=>e.s===s&&!e.career).sort((x,y)=>x.cost-y.cost);
       if(sa.length&&r>0){
         h+=`<div class="abilities"><p class="meter" style="margin:0 0 4px">${s} ability points: <b>${al}</b> of ${r} left</p>`+sa.map(e=>{
           const n=abRank(e.s,e.x),ok=reqOk(e),can=e.mine&&ok&&n<e.max&&al>=e.cost,price=e.max>1?`${e.cost} pt/rank`:`${e.cost} pt${e.cost>1?'s':''}`;
           const ctl=e.mine?`<span class="step"><button data-a="ab" data-v="${e.k}" data-d="-1" ${n<=0?'disabled':''}>−</button><output>${n}${e.max>1?'/'+e.max:''}</output><button data-a="ab" data-v="${e.k}" data-d="1" ${can?'':'disabled'}>+</button></span>`:'';
           return `<div class="row" style="align-items:flex-start;${e.mine?'':'opacity:.55'}"><span class="lab">${e.x} <span class="chip">${price}</span> <span class="chip">${e.c}</span>${REQ[e.x]&&!ok?`<small>${REQ[e.x][0]}</small>`:''}</span><span class="fx" style="flex:1">${e.f(Math.max(1,n))}</span>${ctl}</div>`}).join('')+'</div>';
-      } else if(r<=0&&sa.some(e=>e.mine))h+=`<div class="abilities"><p class="meter" style="margin:0">Buy a rank in ${s} to spend points on its abilities.</p></div>`;
+      } else if(r<=0&&sa.length)h+=`<div class="abilities"><p class="meter" style="margin:0">Buy a rank in ${s} to spend points on its abilities.</p></div>`;
     }
+  }
+  const cc=CAREER_AB[S.career];
+  h+=`<h3>${S.career?S.career+' abilities':'Career abilities'}</h3>`;
+  if(!S.career)h+='<p class="lede" style="font-size:13px">Pick a career to see its abilities.</p>';
+  else if(!cc)h+='<p class="lede" style="font-size:13px">No abilities written for this career yet.</p>';
+  else{
+    h+=`<p class="meter">Paid from ${cc.sk.map(k=>`${k} <b>${abLeft(k)}</b>`).join(' · ')} points left. Cost is the number on the chip.</p><div class="abilities">`;
+    for(const [x,r,fx] of cc.list){
+      const own=cc.sk.some(k=>abRank(k,x)),can=!own&&cc.sk.some(k=>abLeft(k)>=r);
+      h+=`<div class="row" style="align-items:flex-start"><span class="lab">${x} <span class="chip">${r} pt${r>1?'s':''}</span></span><span class="fx" style="flex:1">${fx}</span><span class="step"><button data-a="abc" data-v="${x}" data-d="-1" ${own?'':'disabled'}>−</button><output>${own?1:0}</output><button data-a="abc" data-v="${x}" data-d="1" ${can?'':'disabled'}>+</button></span></div>`;
+    }
+    h+='</div>';
   }
   const ka=knownAbilities();
   h+=`<h3>Your abilities</h3>`+(ka.length?abList(ka.map(a=>({x:a.x+(a.r>1?' ×'+a.r:''),r:a.r,fx:a.fx,cost:0,s:a.s}))):'<p class="lede" style="font-size:13px">None bought yet.</p>');
@@ -747,6 +759,10 @@ document.addEventListener('click',e=>{
     case 'career':S.career=v;break;
     case 'skill':{const r=Math.max(0,skillRank(v)+d);if(r)S.skills[v]=r;else delete S.skills[v];break}
     case 'ab':{const e=catalog().find(x=>x.k===v);if(!e)break;const n=abRank(e.s,e.x)+d;if(n<=0)delete S.abil[v];else if(d>0&&e.mine&&n<=e.max&&abLeft(e.s)>=e.cost&&reqOk(e))S.abil[v]=n;break}
+    case 'abc':{const cc=CAREER_AB[S.career];if(!cc)break;const it=cc.list.find(l=>l[0]===v);if(!it)break;
+      if(d<0){for(const k of cc.sk)delete S.abil[abKey(k,v)]}
+      else if(!cc.sk.some(k=>abRank(k,v))){const k=cc.sk.filter(k=>abLeft(k)>=it[1]).sort((a,b)=>abLeft(b)-abLeft(a))[0];if(k)S.abil[abKey(k,v)]=1}
+      break}
     case 'buy':{const n=Math.max(0,(S.buy[v]||0)+d);if(n)S.buy[v]=Math.min(n,9);else delete S.buy[v];break}
     case 'armor':S.armor=S.armor===v?'':v;break;
     case 'newchar':{const k={pid:S.pid,pcode:S.pcode,inParty:S.inParty,gm:S.gm};S=Object.assign(blank(),k);break}
