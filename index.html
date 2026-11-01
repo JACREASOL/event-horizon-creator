@@ -245,15 +245,22 @@ const abRank=(s,a)=>S.abil[abKey(s,a)]||0;
 function abCost(s,a){const r=abRank(s,a);return Math.max(0,r-(S.freeAb===abKey(s,a)&&r>0?1:0))*unitCost(a)}
 function spent(attr){
   let n=0;
-  for(const s in SKILLS[attr]){n+=skillRank(s);for(const a of SKILLS[attr][s])n+=abCost(s,a)}
+  for(const s in SKILLS[attr])n+=skillRank(s);
   return n;
 }
+const skOf=s=>{for(const a of ATTRS)if(SKILLS[a][s])return SKILLS[a][s];return[]};
+const abSpentSk=s=>skOf(s).reduce((n,x)=>n+abCost(s,x),0);
+const abLeft=s=>skillRank(s)-abSpentSk(s);
 const left=attr=>final(attr)-spent(attr);
 function resetAttr(attr){for(const s in SKILLS[attr]){delete S.skills[s];for(const a of SKILLS[attr][s])delete S.abil[abKey(s,a)]}}
 function normalize(){
   for(const a of ATTRS){
     if(S.base[a]+bonus()[a]>ATTR_CAP)S.base[a]=Math.max(0,ATTR_CAP-bonus()[a]);
     if(left(a)<0)resetAttr(a);
+    for(const s in SKILLS[a])while(abSpentSk(s)>skillRank(s)){
+      const o=SKILLS[a][s].filter(x=>abRank(s,x)>0).sort((p,q)=>unitCost(q)-unitCost(p))[0];
+      if(!o)break;const k=abKey(s,o);if(--S.abil[k]<=0)delete S.abil[k];if(S.freeAb===k&&!S.abil[k])S.freeAb='';
+    }
   }
   if(S.freeAb&&S.species!=='human')S.freeAb='';
 }
@@ -316,7 +323,7 @@ function stepCareer(){
   return h+'</div>';
 }
 function stepSkills(){
-  let h=`<h2>Skills and abilities</h2><p class="lede">Every point of an attribute is one skill rank. Abilities are bought with the same pool and cannot rank higher than their skill. Each ability shows its cost; \"est.\" costs are placeholders.</p>`;
+  let h=`<h2>Skills and abilities</h2><p class="lede">Every point of an attribute is one skill rank. Each skill's ranks are also its ability points: spend them on that skill's abilities (a skill with 3 ranks has 3 ability points). Abilities do not use up your attribute points. Each ability shows its cost; \"est.\" costs are placeholders.</p>`;
   S.col=S.col||{};
   h+=`<div class="actions" style="margin:0 0 6px"><button class="btn" data-a="col" data-v="*open">Expand all</button><button class="btn" data-a="col" data-v="*shut">Collapse all</button></div>`;
   for(const a of ATTRS){
@@ -331,11 +338,11 @@ function stepSkills(){
       const abs=sk[s];
       const showAbs=abs.filter(x=>r>0||S.freeAb===abKey(s,x));
       if(showAbs.length&&!sc){
-        h+='<div class="abilities">';
+        h+=`<div class="abilities"><p class="meter" style="margin:0 0 4px">${s} ability points: <b>${abLeft(s)}</b> of ${r} left</p>`;
         for(const x of showAbs){
           const k=abKey(s,x),ar=abRank(s,x),free=S.freeAb===k;
           const maxR=Math.min(MAXR[x]||5,Math.max(r,free?1:0));
-          const uc=unitCost(x),step=ar<maxR&&reqOk(x)&&(l>=uc||(free&&ar===0));
+          const uc=unitCost(x),step=ar<maxR&&reqOk(x)&&(abLeft(s)>=uc||(free&&ar===0));
           h+=`<div class="row"><span class="lab">${x} <span class="chip">${uc}${(MAXR[x]||5)>1?'/rank':' pt'}${EST.includes(x)?' est.':''}</span>${free?' <span class="chip">free R1</span>':''}</span><span class="step"><button data-a="abil" data-v="${k}" data-d="-1" ${ar<=0?'disabled':''}>−</button><output>${ar}</output><button data-a="abil" data-v="${k}" data-d="1" ${step?'':'disabled'}>+</button></span><span class="fx">${ar?AB[x](ar):'Not learned.'}</span></div>`;
         }
         h+='</div>';
