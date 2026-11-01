@@ -160,7 +160,53 @@ const COST={'Brutal Strike':1,'Relentless':1,'Juggernaut':2,'Killing Blow':5,'Ra
 const EST=['Brutal Strike','Patient','Weak Point','Long Shot','Controlled Breathing','Battle Hardened','Second Wind','Iron Will','Thick Skin'];
 const MAXR={'Relentless':1,'Juggernaut':1,'Killing Blow':1,'Rampage':1,'Melee Weapon Familiarity':1,'Unstoppable':1,'Weapon Familiarity':1,'Weapon Mastery':1,'Suppressing Fire':1,'Apex Predator':1,'Patient':1,'Weak Point':1,'Long Shot':1,'Controlled Breathing':1,'Combat Awareness':1,'Battlefield Discipline':1,'Second Wind':1,'Iron Will':1,'Thick Skin':3};
 const REQ={'Weapon Mastery':['Firearms','Weapon Familiarity',1],'Iron Will':['Wounds','Battle Hardened',3]};
-const unitCost=x=>COST[x]||ABILITY_RANK_COST;
+/* Career abilities (from the v0.4 draft). [name, point cost, effect]. Cost = old R number (assumed). Paid from the career's parent skills. */
+const CAREER_AB={
+ 'Soldier':{label:'Firearms / Melee Combat / Leadership',sk:['Firearms','Melee Combat','Leadership'],list:[
+  ['Suppressing Fire',1,'Lay down fire in a cone or line. Enemies in the area make an Evasion roll or are Pinned on their next turn.'],
+  ['Quick Draw',1,'Draw and fire in the same action. No action cost to draw a weapon.'],
+  ['Covering Fire',1,'Use your action to protect an ally moving through open ground. They gain +2 Evasion until the start of your next turn.'],
+  ['Controlled Burst',2,'Fire 3 shots as one action. Each hit deals weapon damage; critical on 18+. Costs double ammo.'],
+  ['Called Shot',2,'Declare a body part before rolling. On hit: head (-2 to all rolls for 1 turn), legs (Slowed), arms (disarm or -1 attack).'],
+  ['Overwatch',2,'Hold your action. Free attack against any enemy that moves into your line of sight this turn.'],
+  ['Breach and Clear',3,'When entering a room, you and one ally may act before any enemy inside can react.'],
+  ['Suppression Expertise',3,'Suppressing Fire now Pins all enemies in the area, not just those who fail the Evasion roll.'],
+  ['Combat Reflexes',3,'Once per round, when an ally within 10 ft is attacked, make a free attack against the attacker if in range.'],
+  ['Precision Strike',3,'Once per encounter, deal maximum damage on a hit. The hit lands automatically if you are within range.'],
+  ['Grenade Mastery',4,'Throw grenades as a free action once per turn. Redirect a grenade mid-air (opposed Accuracy roll).'],
+  ['Tactical Retreat',4,'Disengage without provoking attacks of opportunity. Move up to half your Speed and fire one shot.'],
+  ['Steel Discipline',4,'Immune to Panicked. Allies within 10 ft gain +1 to fear and morale rolls.'],
+  ['Killzone',5,'Once per encounter, designate a 20 ft area. Any enemy entering it this turn is automatically hit for weapon damage.'],
+  ['Last Stand',5,'At 10 HP or below: +2 to attack rolls, and you cannot be Slowed or Pinned until the start of your next turn.'],
+  ['Squad Command',5,'As an action, give two allies a free Move. They also make one free attack each if already in range.']]},
+ 'Medic':{label:'Medical',sk:['Medical'],list:[
+  ['Triage',1,'Stabilize a 0 HP ally as a Move action (normally a full Action).'],
+  ['Combat Stim',1,'Inject an ally: +2 Speed and +1 to rolls for 2 turns. Crash: -1 to rolls for 1 turn after.'],
+  ['Field Surgery',2,'Spend 2 actions and a Medkit to restore 2d6 HP to an ally. Once per Rest per patient.'],
+  ['Toxin Purge',2,'Clear one Poisoned or Toxic condition from a target. Requires a Medkit.'],
+  ['Advanced Triage',3,'Stabilize any number of 0 HP allies in your line of sight as one action.']]},
+ 'Bounty Hunter':{label:'Firearms / Stealth / Perception',sk:['Firearms','Stealth','Perception'],list:[
+  ['Mark',1,'Designate a target as your Mark: +1 to all rolls against them until captured or dead.'],
+  ['Tracker',1,'Follow a target\'s trail through any environment. Roll Memory + Perception; difficulty from time elapsed and conditions.'],
+  ['Capture Specialist',2,'Non-lethal takedown on a Prone or Slowed target without a roll. They are Restrained.'],
+  ['Bounty Intel',2,'Once per session, learn a target\'s current location, known aliases, or a weakness.'],
+  ['Relentless',3,'Your Mark cannot benefit from Stealth or Invisibility against you while you pursue them.']]},
+ 'Hacker':{label:'Hacking',sk:['Hacking'],note:'Uses a Bandwidth pool (never HP). Needs a Hacking Rig (200 Digi).',list:[
+  ['Ghost Protocol',1,'Mask your signal. While active, hacks cannot be traced to your location. Costs 1 Bandwidth.'],
+  ['System Probe',1,'Scan a connected network or device. Learn its systems and security rating before attacking.'],
+  ['Lockpick',2,'Crack a door, terminal, or lock without a Ghost Spike. Roll Hacking vs. security rating.'],
+  ['Bandwidth Spike',2,'Spend 3 Bandwidth for +3 to your next Hacking roll. Can be used reactively.'],
+  ['System Crash',3,'Shut down a drone, turret, security door, or vehicle for 2 turns. Costs 4 Bandwidth.']]},
+ 'Smuggler':{label:'Charm skills / Stealth',sk:['Negotiation','Con','Deception','Leadership','Performance','Stealth'],list:[
+  ['Fast Talk',1,'Roll Charm vs. their Memory. On success a guard or official waves you through without searching you or your cargo.'],
+  ['Hidden Compartment',1,'Your ship or vehicle has a concealed compartment. Searching it needs a Hard (18) Perception check. Passive.'],
+  ['Black Market Contact',1,'Once per session, source restricted gear or information. The GM sets availability and price.'],
+  ['Slippery',2,'+2 to all rolls to evade, hide, or outmaneuver a pursuer for the duration of a chase.'],
+  ['Forged Papers',2,'Produce false ID, manifests, or permits. Materials cost TBD. Inspectors roll Memory at Hard (18) to detect it.'],
+  ['Ghost Run',3,'Once per session, your ship goes dark: no transponder, no emissions, undetectable by sensors for 10 minutes. Cannot fire weapons.']]}
+};
+const careerCost=n=>{const c=CAREER_AB[S.career];const it=c&&c.list.find(l=>l[0]===n);return it?it[1]:1};
+const unitCost=x=>x.startsWith('C:')?careerCost(x.slice(2)):(COST[x]||ABILITY_RANK_COST);
 const reqOk=x=>{const q=REQ[x];return !q||abRank(q[0],q[1])>=q[2]};
 const AB={
   'Brutal Strike':r=>`Once per turn, a melee hit also applies Weakened. ${r} use${r>1?'s':''} per combat.`,
@@ -248,7 +294,8 @@ function spent(attr){
   for(const s in SKILLS[attr])n+=skillRank(s);
   return n;
 }
-const skOf=s=>{for(const a of ATTRS)if(SKILLS[a][s])return SKILLS[a][s];return[]};
+const skOf=s=>{for(const a of ATTRS)if(SKILLS[a][s])return SKILLS[a][s].concat(abCareer(s));return[]};
+const abCareer=s=>{const c=CAREER_AB[S.career];return c&&c.sk.includes(s)?c.list.map(l=>'C:'+l[0]):[]};
 const abSpentSk=s=>skOf(s).reduce((n,x)=>n+abCost(s,x),0);
 const abLeft=s=>skillRank(s)-abSpentSk(s);
 const left=attr=>final(attr)-spent(attr);
@@ -258,10 +305,11 @@ function normalize(){
     if(S.base[a]+bonus()[a]>ATTR_CAP)S.base[a]=Math.max(0,ATTR_CAP-bonus()[a]);
     if(left(a)<0)resetAttr(a);
     for(const s in SKILLS[a])while(abSpentSk(s)>skillRank(s)){
-      const o=SKILLS[a][s].filter(x=>abRank(s,x)>0).sort((p,q)=>unitCost(q)-unitCost(p))[0];
+      const o=skOf(s).filter(x=>abRank(s,x)>0).sort((p,q)=>unitCost(q)-unitCost(p))[0];
       if(!o)break;const k=abKey(s,o);if(--S.abil[k]<=0)delete S.abil[k];if(S.freeAb===k&&!S.abil[k])S.freeAb='';
     }
   }
+  for(const k of Object.keys(S.abil)){const [sk,n]=k.split('|');if(n.startsWith('C:')&&!abCareer(sk).includes(n))delete S.abil[k]}
   if(S.freeAb&&S.species!=='human')S.freeAb='';
 }
 const arcPool=()=>(final('knowledge')+final('memory'))*3+((SPECIES[S.species]||{}).arc||0);
@@ -349,6 +397,18 @@ function stepSkills(){
       }
     }
   }
+  h+=`<h3>${S.career?S.career+' abilities':'Career abilities'}</h3>`;
+  const cc=CAREER_AB[S.career];
+  if(!S.career)h+='<p class="lede" style="font-size:13px">Pick a career to see its abilities.</p>';
+  else if(!cc)h+='<p class="lede" style="font-size:13px">No abilities written for this career yet.</p>';
+  else{
+    h+=`<p class="meter">Paid from your ${cc.sk.map(k=>`${k} <b>${abLeft(k)}</b>`).join(' · ')} ability points left. Cost is the number on the chip. Only ${S.career} abilities show here.</p><div class="abilities">`;
+    for(const [x,r,fx] of cc.list){
+      const own=cc.sk.some(k=>abRank(k,'C:'+x)),can=!own&&cc.sk.some(k=>skillRank(k)>0&&abLeft(k)>=r);
+      h+=`<div class="row"><span class="lab">${x} <span class="chip">${r} pt${r>1?'s':''}</span></span><span class="step"><button data-a="abc" data-v="${x}" data-d="-1" ${own?'':'disabled'}>−</button><output>${own?1:0}</output><button data-a="abc" data-v="${x}" data-d="1" ${can?'':'disabled'}>+</button></span><span class="fx">${fx}</span></div>`;
+    }
+    h+='</div>';
+  }
   if(S.species==='human'){
     h+=`<h3>Human: free rank-1 ability</h3><p class="lede" style="font-size:13px">Pick one ability to start at rank 1 at no cost.</p><div class="pillrow">`;
     for(const a of ATTRS)for(const s in SKILLS[a])for(const x of SKILLS[a][s]){const k=abKey(s,x);h+=`<button class="pill" data-a="free" data-v="${k}" aria-pressed="${S.freeAb===k}">${x}</button>`}
@@ -395,6 +455,7 @@ function textSheet(){
     const ab=SKILLS[a][s].filter(x=>abRank(s,x)).map(x=>`${x} R${abRank(s,x)}`);
     L.push(`- ${s} ${r}${ab.length?' ['+ab.join(', ')+']':''}`);
   }
+  {const cc=CAREER_AB[S.career];if(cc){const own=cc.list.filter(l=>cc.sk.some(k=>abRank(k,'C:'+l[0])));if(own.length){L.push('',`${S.career.toUpperCase()} ABILITIES`);for(const l of own)L.push(`- ${l[0]}: ${l[2]}`)}}}
   if(S.freeAb){const [s,x]=S.freeAb.split('|');if(!abRank(s,x))L.push(`- Free ability: ${x} R1`)}
   if(!any&&!S.freeAb)L.push('- none');
   if(S.gear.trim()){L.push('','GEAR',S.gear.trim())}
@@ -627,6 +688,10 @@ document.addEventListener('click',e=>{
     case 'career':S.career=v;break;
     case 'skill':{const r=Math.max(0,skillRank(v)+d);if(r)S.skills[v]=r;else delete S.skills[v];
       for(const x of SKILLS[at][v]){const k=abKey(v,x),cap=(S.freeAb===k?Math.max(r,1):r);if(abRank(v,x)>cap){if(cap)S.abil[k]=cap;else delete S.abil[k]}}break}
+    case 'abc':{const cc=CAREER_AB[S.career];if(!cc)break;const it=cc.list.find(l=>l[0]===v);if(!it)break;
+      if(d<0){for(const k of cc.sk)delete S.abil[abKey(k,'C:'+v)]}
+      else if(!cc.sk.some(k=>abRank(k,'C:'+v))){const k=cc.sk.filter(k=>skillRank(k)>0&&abLeft(k)>=it[1]).sort((a,b)=>abLeft(b)-abLeft(a))[0];if(k)S.abil[abKey(k,'C:'+v)]=1}
+      break}
     case 'abil':{const n=Math.max(0,(S.abil[v]||0)+d);if(n)S.abil[v]=n;else delete S.abil[v];for(const x in REQ){const q=REQ[x],k2=abKey(q[0],x);if(S.abil[k2]&&abRank(q[0],q[1])<q[2])delete S.abil[k2]}break}
     case 'free':{S.freeAb=S.freeAb===v?'':v;break}
     case 'newchar':{const k={pid:S.pid,pcode:S.pcode,inParty:S.inParty,gm:S.gm};S=Object.assign(blank(),k);break}
