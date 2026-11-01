@@ -236,19 +236,19 @@ const GEN=[
  ['Brutal Strike','Melee Combat',1,3,n=>`A melee hit applies Weakened. ${n} use${n>1?'s':''} per combat. Weakened lasts 1 turn (to confirm).`],
  ['Relentless','Melee Combat',1,1,()=>'After dropping an enemy to 0 HP, move up to 10 ft as a free action.'],
  ['Juggernaut','Melee Combat',2,1,()=>'When you Sprint, move through enemies; each takes 1d6 damage.'],
- ['Melee Weapon Familiarity','Melee Combat',2,1,()=>'Pick one melee weapon type; on a natural 19+ your attack bypasses armor points.'],
- ['Killing Blow','Melee Combat',3,1,()=>'A melee critical hit forces the target to roll on the injury table regardless of remaining HP.'],
- ['Rampage','Melee Combat',3,1,()=>'Once per combat, make two melee attacks as one Action.'],
+ ['Melee Weapon Familiarity','Melee Combat',5,1,()=>'Pick one melee weapon type; on a natural 19+ your attack bypasses armor points.'],
+ ['Killing Blow','Melee Combat',5,1,()=>'A melee critical hit forces the target to roll on the injury table regardless of remaining HP.'],
+ ['Rampage','Melee Combat',5,1,()=>'Once per combat, make two melee attacks as one Action.'],
  ['Close Range','Firearms',1,5,n=>`+${rngB(n)} to attack with weapons suited to 6–30 ft (+1 per 2 ranks, assumed).`],
  ['Medium Range','Firearms',1,5,n=>`+${rngB(n)} to attack with weapons suited to 31–90 ft (+1 per 2 ranks, assumed).`],
  ['Long Range','Firearms',1,5,n=>`+${rngB(n)} to attack with weapons suited to 91–180 ft (+1 per 2 ranks, assumed).`],
- ['Weapon Familiarity','Firearms',1,1,()=>'Pick one weapon type; ignore range penalties with it.'],
- ['Weapon Mastery','Firearms',2,1,()=>'Needs Weapon Familiarity. Pick one weapon type; its attacks deal one extra damage die.'],
- ['Patient','Firearms',1,1,()=>'You take no Standing Still penalty to Evasion. No attack bonus.'],
- ['Weak Point','Firearms',2,1,()=>'Once per combat, one attack that hits ignores all AP.'],
- ['Long Shot','Firearms',2,3,n=>`Your maximum range extends ${n} range band${n>1?'s':''}.`],
- ['Controlled Breathing','Firearms',2,1,()=>'Once per combat, reroll one attack die and take the higher.'],
- ['Apex Predator','Firearms',3,1,()=>'Enemies you attack at range get no cover bonus to Evasion.'],
+ ['Weapon Familiarity','Firearms',5,1,()=>'Pick one weapon type; ignore range penalties with it.'],
+ ['Weapon Mastery','Firearms',5,1,()=>'Needs Weapon Familiarity. Pick one weapon type; its attacks deal one extra damage die.'],
+ ['Patient','Firearms',5,1,()=>'You take no Standing Still penalty to Evasion. No attack bonus.'],
+ ['Weak Point','Firearms',5,1,()=>'Once per combat, one attack that hits ignores all AP.'],
+ ['Long Shot','Firearms',1,3,n=>`Your maximum range extends ${n} range band${n>1?'s':''}.`],
+ ['Controlled Breathing','Firearms',1,3,()=>'Once per combat, reroll one attack die and take the higher.'],
+ ['Apex Predator','Firearms',5,1,()=>'Enemies you attack at range get no cover bonus to Evasion.'],
  ['Sneak','Stealth',1,5,n=>SNEAKT[n]],
  ['Eavesdropping','Perception',1,5,n=>`Listen through barriers or at a distance. Rank ${n} improves range and clarity.`],
  ['Combat Awareness','Perception',5,1,()=>'Never surprised. Always act in the first round even if ambushed.'],
@@ -256,11 +256,19 @@ const GEN=[
  ['Battlefield Discipline','Leadership',2,1,()=>'Allies within Medium range who can see or hear you are immune to Panicked.'],
  ['Battle Hardened','Endurance',1,5,n=>`+${5*n} to injury table rolls.`],
  ['Second Wind','Endurance',2,1,()=>'Once per combat, free action: recover 1d8 HP.'],
- ['Iron Will','Endurance',3,1,()=>'Once per session, treat one injury table roll as 76–100.'],
+ ['Iron Will','Endurance',5,1,()=>'Once per session, treat one injury table roll as 76–100.'],
  ['Thick Skin','Endurance',1,3,n=>`+${4*n} max HP (v0.4 fixes HP at 20, so this is not applied automatically).`]];
-function genAbs(){
-  return GEN.map(([x,sk,r,cap,f])=>{const sr=skillRank(sk),n=Math.max(1,Math.min(cap,sr));return{x,s:sk,r,ok:sr>=r,fx:f(n),c:'General',gen:true}});
+const REQ={'Weapon Mastery':['needs Weapon Familiarity',()=>abRank('Firearms','Weapon Familiarity')>0],'Iron Will':['needs Battle Hardened rank 3',()=>abRank('Endurance','Battle Hardened')>=3],'Combat Awareness':['needs Perception rank 5',()=>skillRank('Perception')>=5]};
+/* Abilities are bought: a skill's ranks are its ability pool. Career abilities cost their R number in points (assumed). */
+function catalog(){
+  const out=[];
+  for(const c in CAREER_AB)for(const sk of CAREER_AB[c].sk)for(const [x,r,fx] of CAREER_AB[c].list)out.push({k:abKey(sk,x),x,s:sk,cost:r,max:1,f:()=>fx,c,mine:c===S.career});
+  for(const [x,sk,cost,max,f] of GEN)out.push({k:abKey(sk,x),x,s:sk,cost,max,f,c:'General',mine:true});
+  return out;
 }
+const abSpent=sk=>catalog().filter(e=>e.s===sk).reduce((n,e)=>n+e.cost*abRank(e.s,e.x),0);
+const abLeft=sk=>skillRank(sk)-abSpent(sk);
+const reqOk=e=>!REQ[e.x]||REQ[e.x][1]();
 const CAREERS=[
   ['Merchant',1],['Scholar',1],['Medic',1],['Pilot',2],['Engineer',2],['Investigator',2],
   ['Soldier',3],['Bounty Hunter',3],['Smuggler',3],['Hacker',3],['Special Operations',4],['Deep Cover Agent',4]];
@@ -326,6 +334,15 @@ function normalize(){
     if(S.base[a]+bonus()[a]>ATTR_CAP)S.base[a]=Math.max(0,ATTR_CAP-bonus()[a]);
     if(left(a)<0)resetAttr(a);
   }
+  const cat=catalog(),m={};for(const e of cat)m[e.k]=e;
+  for(const k in S.abil){const e=m[k];if(!e||!e.mine||!(S.abil[k]>0))delete S.abil[k];else if(S.abil[k]>e.max)S.abil[k]=e.max}
+  for(let g=0;g<20;g++){
+    for(const e of cat)if(abRank(e.s,e.x)&&!reqOk(e))delete S.abil[e.k];
+    for(const sk of new Set(cat.map(e=>e.s)))while(abSpent(sk)>skillRank(sk)){
+      const o=cat.filter(e=>e.s===sk&&abRank(e.s,e.x)).sort((a,b)=>b.cost-a.cost)[0];
+      if(--S.abil[o.k]<=0)delete S.abil[o.k];
+    }
+  }
   S.freeAb='';
 }
 const arcPool=()=>(final('knowledge')+final('memory'))*3+((SPECIES[S.species]||{}).arc||0);
@@ -341,15 +358,13 @@ function chipsFor(k){
 }
 
 /* ---------- steps ---------- */
-function myAbilities(){
-  const c=CAREER_AB[S.career];if(!c)return[];
-  const best=Math.max(0,...c.sk.map(skillRank));
-  return c.list.map(([x,r,fx])=>({x,r,fx,ok:best>=r,s:c.label}));
+function knownAbilities(){
+  const seen={};
+  return catalog().filter(e=>abRank(e.s,e.x)>0).map(e=>{const n=abRank(e.s,e.x);return{x:e.x,s:e.s,r:n,fx:e.f(n),c:e.c,ok:true}}).filter(a=>!seen[a.x]&&(seen[a.x]=1));
 }
-const knownAbilities=()=>myAbilities().filter(a=>a.ok).concat(genAbs().filter(a=>a.ok));
 function abList(list,showLock){
   let h='<div class="abilities">';
-  for(const a of list)h+=`<div class="row" style="align-items:flex-start;${a.ok===false?'opacity:.6':''}"><span class="lab">${a.x} <span class="chip">R${a.r}</span>${a.ok===false?`<small>Locked until a parent skill reaches rank ${a.r}</small>`:''}</span><span class="fx" style="flex:1">${a.fx}</span></div>`;
+  for(const a of list)h+=`<div class="row" style="align-items:flex-start;${a.ok===false?'opacity:.6':''}"><span class="lab">${a.x} ${a.cost===0?'':`<span class="chip">${a.cost||a.r} pt${(a.cost||a.r)>1?'s':''}</span>`}</span><span class="fx" style="flex:1">${a.fx}</span></div>`;
   return h+'</div>';
 }
 function stepSpecies(){
@@ -392,35 +407,31 @@ function stepCareer(){
   const c=CAREER_AB[S.career];
   if(S.career){
     h+=`<div class="detail"><h3>${S.career} abilities</h3>`;
-    if(c){h+=`<p class="meter">Parent skill: ${c.label}. R1–R5 is the skill rank you need. Abilities are free in the first playtest.</p>${c.note?`<p class="meter">${c.note}</p>`:''}`+abList(c.list.map(([x,r,fx])=>({x,r,fx})))}
+    if(c){h+=`<p class="meter">Parent skill: ${c.label}. The chip is the point cost. You buy abilities on the Skills step, paid from the parent skill's ranks.</p>${c.note?`<p class="meter">${c.note}</p>`:''}`+abList(c.list.map(([x,r,fx])=>({x,r,fx,cost:r})))}
     else h+='<p class="lede" style="font-size:13px">No abilities written for this career yet.</p>';
     h+='</div>';
   }
   return h;
 }
-function skillAbs(sk){
-  const out=[];
-  for(const c in CAREER_AB)if(CAREER_AB[c].sk.includes(sk))for(const [x,r,fx] of CAREER_AB[c].list)out.push({x,r,fx,c,mine:c===S.career});
-  for(const g of genAbs())if(g.s===sk)out.push({x:g.x,r:g.r,fx:g.fx,c:'General',mine:true});
-  return out.sort((a,b)=>a.r-b.r);
-}
 function stepSkills(){
-  let h=`<h2>Skills and abilities</h2><p class="lede">Every point of an attribute buys one skill rank (max 5). Abilities cost nothing in the playtest. They unlock when a parent skill reaches the ability's rank. Abilities under each skill belong to a career; yours are bright, others are dimmed for reference.</p>`;
+  let h=`<h2>Skills and abilities</h2><p class="lede">Each attribute point buys one skill rank (max 5). A skill's ranks are also its ability pool: spend them on that skill's abilities. Ranked abilities cost 1 point per rank. Bright abilities are yours (General and your career); dimmed ones belong to other careers.</p>`;
   for(const a of ATTRS){
     const pool=final(a),l=left(a);
     h+=`<h3>${AL[a]} <span class="meter ${l<0?'over':''}">· <b>${l}</b> of ${pool} left</span></h3>`;
     for(const s in SKILLS[a]){
-      const r=skillRank(s);
+      const r=skillRank(s),al=abLeft(s);
       h+=`<div class="row"><span class="lab">${s}<small>${SKDESC[s]||''}</small></span><span class="step"><button data-a="skill" data-v="${s}" data-at="${a}" data-d="-1" ${r<=0?'disabled':''}>−</button><output>${r}</output><button data-a="skill" data-v="${s}" data-at="${a}" data-d="1" ${l<=0||r>=5?'disabled':''}>+</button></span></div>`;
-      const sa=skillAbs(s);
-      if(sa.length)h+='<div class="abilities">'+sa.map(x=>`<div class="row" style="align-items:flex-start;${x.mine&&r>=x.r?'':'opacity:.55'}"><span class="lab">${x.x} <span class="chip">R${x.r}</span> <span class="chip">${x.c}</span>${x.mine?(r>=x.r?'<small>Unlocked</small>':`<small>Needs ${s} ${x.r}</small>`):''}</span><span class="fx" style="flex:1">${x.fx}</span></div>`).join('')+'</div>';
+      const sa=catalog().filter(e=>e.s===s).sort((x,y)=>(y.mine-x.mine)||x.cost-y.cost);
+      if(sa.length&&r>0){
+        h+=`<div class="abilities"><p class="meter" style="margin:0 0 4px">${s} ability points: <b>${al}</b> of ${r} left</p>`+sa.map(e=>{
+          const n=abRank(e.s,e.x),ok=reqOk(e),can=e.mine&&ok&&n<e.max&&al>=e.cost,price=e.max>1?`${e.cost} pt/rank`:`${e.cost} pt${e.cost>1?'s':''}`;
+          const ctl=e.mine?`<span class="step"><button data-a="ab" data-v="${e.k}" data-d="-1" ${n<=0?'disabled':''}>−</button><output>${n}${e.max>1?'/'+e.max:''}</output><button data-a="ab" data-v="${e.k}" data-d="1" ${can?'':'disabled'}>+</button></span>`:'';
+          return `<div class="row" style="align-items:flex-start;${e.mine?'':'opacity:.55'}"><span class="lab">${e.x} <span class="chip">${price}</span> <span class="chip">${e.c}</span>${REQ[e.x]&&!ok?`<small>${REQ[e.x][0]}</small>`:''}</span><span class="fx" style="flex:1">${e.f(Math.max(1,n))}</span>${ctl}</div>`}).join('')+'</div>';
+      } else if(r<=0&&sa.some(e=>e.mine))h+=`<div class="abilities"><p class="meter" style="margin:0">Buy a rank in ${s} to spend points on its abilities.</p></div>`;
     }
   }
-  const c=CAREER_AB[S.career];
-  h+=`<h3>${S.career?S.career+' abilities':'Career abilities'}</h3>`;
-  if(!S.career)h+='<p class="lede" style="font-size:13px">Pick a career to see its abilities.</p>';
-  else if(!c)h+='<p class="lede" style="font-size:13px">No abilities written for this career yet.</p>';
-  else h+=`<p class="meter">Parent skill: ${c.label}. Unlocked: ${knownAbilities().length} of ${c.list.length}.</p>`+abList(myAbilities());
+  const ka=knownAbilities();
+  h+=`<h3>Your abilities</h3>`+(ka.length?abList(ka.map(a=>({x:a.x+(a.r>1?' ×'+a.r:''),r:a.r,fx:a.fx,cost:0,s:a.s}))):'<p class="lede" style="font-size:13px">None bought yet.</p>');
   return h;
 }
 const buyN=k=>S.buy[k]||0;
@@ -532,7 +543,7 @@ function PL(){
   p.arc=Math.min(p.arc,arcPool());p.hp=Math.min(p.hp,p.hpMax);p.ap=Math.min(p.ap,p.apMax);
   return p;
 }
-const skillBonus=s=>skillRank(s)+(s==='Stealth'&&skillRank('Stealth')>0?({1:1,2:1,3:2,4:2,5:3})[skillRank('Stealth')]:0);
+const skillBonus=s=>skillRank(s)+(s==='Stealth'&&abRank('Stealth','Sneak')>0?({1:1,2:1,3:2,4:2,5:3})[abRank('Stealth','Sneak')]:0);
 const evasion=()=>{const p=PL();return Math.max(0,Math.floor(SPD())-p.sil-p.still)};
 function setRes(h,lines,tone){const p=PL();p.res={h,lines,tone};p.log.unshift(`R${p.round} · ${h}`);p.log=p.log.slice(0,25)}
 function doSkill(label,bonus){
@@ -554,7 +565,7 @@ function atkBonus(){
   const p=PL(),w=WEAPONS[p.wi],rp=rangePen();
   if(rp.blocked)return{blocked:rp.blocked};
   let b=skillRank(w.sk);const parts=[`${w.sk} ${b}`];
-  if(!w.melee&&skillRank('Firearms')){const nm=['','Close Range','Medium Range','Long Range'][w.band];if(nm){const v=rngB(skillRank('Firearms'));b+=v;parts.push(`${nm} +${v}`)}}
+  if(!w.melee){const nm=['','Close Range','Medium Range','Long Range'][w.band];if(nm&&abRank('Firearms',nm)){const v=rngB(abRank('Firearms',nm));b+=v;parts.push(`${nm} +${v}`)}}
   if(rp.pen){b+=rp.pen}parts.push(...rp.notes);
   if(p.aim&&!w.melee){b+=1;parts.push('Aimed Shot +1')}
   if(p.cond.Prone){b-=2;parts.push('Prone −2')}
@@ -735,6 +746,7 @@ document.addEventListener('click',e=>{
     case 'attr':S.base[v]=Math.max(0,S.base[v]+d);break;
     case 'career':S.career=v;break;
     case 'skill':{const r=Math.max(0,skillRank(v)+d);if(r)S.skills[v]=r;else delete S.skills[v];break}
+    case 'ab':{const e=catalog().find(x=>x.k===v);if(!e)break;const n=abRank(e.s,e.x)+d;if(n<=0)delete S.abil[v];else if(d>0&&e.mine&&n<=e.max&&abLeft(e.s)>=e.cost&&reqOk(e))S.abil[v]=n;break}
     case 'buy':{const n=Math.max(0,(S.buy[v]||0)+d);if(n)S.buy[v]=Math.min(n,9);else delete S.buy[v];break}
     case 'armor':S.armor=S.armor===v?'':v;break;
     case 'newchar':{const k={pid:S.pid,pcode:S.pcode,inParty:S.inParty,gm:S.gm};S=Object.assign(blank(),k);break}
