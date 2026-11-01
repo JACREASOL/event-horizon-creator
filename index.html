@@ -147,7 +147,9 @@ pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px s
 const ATTRS=['muscles','accuracy','knowledge','memory','charm','toughness'];
 const AL={muscles:'Muscles',accuracy:'Accuracy',knowledge:'Knowledge',memory:'Memory',charm:'Charm',toughness:'Toughness'};
 const ADESC={muscles:'Physical power and melee force',accuracy:'Precision and aim',knowledge:'Education, tech, Arc theory',memory:'Wisdom, perception, recall',charm:'Social skill and presence',toughness:'Endurance and resilience'};
-const POINTS=10, ATTR_CAP=5, ABILITY_RANK_COST=1; /* ability costs are placeholders until the rulebook defines them */
+const POINTS=10, ATTR_CAP=5, ABILITY_RANK_COST=1;
+const XP=()=>S.xp||(S.xp={attr:0,abil:0});
+const totalPts=()=>POINTS+XP().attr, attrCap=()=>XP().attr>0?10:ATTR_CAP; /* ability costs are placeholders until the rulebook defines them */
 const SKILLS={
   muscles:{'Athletics':['Heavy Lifting','Acrobatics','Unstoppable'],'Melee Combat':['Grapple','Disarm','Brutal Strike','Relentless','Juggernaut','Killing Blow','Rampage','Melee Weapon Familiarity']},
   accuracy:{'Firearms':['Close Range','Medium Range','Long Range','Weapon Familiarity','Weapon Mastery','Suppressing Fire','Apex Predator'],'Long Range':['Patient','Weak Point','Long Shot','Controlled Breathing'],'Throwing':[],'Sleight of Hand':[],'Stealth':['Sneak']},
@@ -296,7 +298,7 @@ const TIER={1:'Standard',2:'Moderate',3:'Higher',4:'Highest'};
 const STEPS=['Species','Attributes','Career','Skills','Gear','Sheet'];
 
 const blank=()=>({mode:'build',pcode:'',pid:'',gm:false,inParty:false,pl:{init:false,hp:0,hpMax:0,ap:12,apMax:12,arc:0,favor:0,sil:1,still:0,round:1,uny:false,rapid:false,wi:0,band:1,cover:0,tcover:0,aim:false,pack:false,enemyEv:5,ecn:0,dn:13,mod:0,dmg:3,spend:1,res:null,last:null,log:[]},step:0,name:'',species:'',vPrimary:'muscles',vExtra:'charm',fTrait:'regen',hFloat:{},
-  base:Object.fromEntries(ATTRS.map(a=>[a,0])),career:'',skills:{},abil:{},freeAb:'',buy:{},armor:'',gear:'',notes:''});
+  base:Object.fromEntries(ATTRS.map(a=>[a,0])),career:'',skills:{},abil:{},xp:{attr:0,abil:0},freeAb:'',buy:{},armor:'',gear:'',notes:''});
 let S=blank();
 try{const raw=localStorage.getItem('eh-char');if(raw){S=Object.assign(blank(),JSON.parse(raw))}}catch(e){}
 function save(){try{localStorage.setItem('eh-char',JSON.stringify(S))}catch(e){}}
@@ -326,16 +328,22 @@ const skOf=s=>{for(const a of ATTRS)if(SKILLS[a][s])return SKILLS[a][s].concat(a
 const abCareer=s=>{const c=CAREER_AB[S.career];return c&&c.sk.includes(s)?c.list.map(l=>'C:'+l[0]):[]};
 const abSpentSk=s=>skOf(s).reduce((n,x)=>n+abCost(s,x),0);
 const abLeft=s=>skillRank(s)-abSpentSk(s);
+const allSkills=()=>ATTRS.flatMap(a=>Object.keys(SKILLS[a]));
+const overflowTotal=()=>allSkills().reduce((n,s)=>n+Math.max(0,abSpentSk(s)-skillRank(s)),0);
+const bankLeft=()=>XP().abil-overflowTotal();
+const canSpend=(s,c)=>abLeft(s)>=c||c-Math.max(0,abLeft(s))<=bankLeft();
 const left=attr=>final(attr)-spent(attr);
 function resetAttr(attr){for(const s in SKILLS[attr]){delete S.skills[s];for(const a of SKILLS[attr][s])delete S.abil[abKey(s,a)]}}
 function normalize(){
   for(const a of ATTRS){
-    if(S.base[a]+bonus()[a]>ATTR_CAP)S.base[a]=Math.max(0,ATTR_CAP-bonus()[a]);
+    if(S.base[a]+bonus()[a]>attrCap())S.base[a]=Math.max(0,attrCap()-bonus()[a]);
     if(left(a)<0)resetAttr(a);
-    for(const s in SKILLS[a])while(abSpentSk(s)>skillRank(s)){
-      const o=skOf(s).filter(x=>abRank(s,x)>0).sort((p,q)=>unitCost(q)-unitCost(p))[0];
-      if(!o)break;const k=abKey(s,o);if(--S.abil[k]<=0)delete S.abil[k];if(S.freeAb===k&&!S.abil[k])S.freeAb='';
-    }
+  }
+  while(baseSpent()>totalPts()){const a=ATTRS.slice().sort((p,q)=>S.base[q]-S.base[p])[0];S.base[a]--;if(left(a)<0)resetAttr(a)}
+  for(let g=0;g<60&&overflowTotal()>XP().abil;g++){
+    const sk=allSkills().filter(s=>abSpentSk(s)>skillRank(s))[0];if(!sk)break;
+    const o=skOf(sk).filter(x=>abRank(sk,x)>0).sort((p,q)=>unitCost(q)-unitCost(p))[0];
+    if(!o)break;const k=abKey(sk,o);if(--S.abil[k]<=0)delete S.abil[k];if(S.freeAb===k&&!S.abil[k])S.freeAb='';
   }
   for(const k of Object.keys(S.abil)){const [sk,n]=k.split('|');if(n.startsWith('C:')&&!abCareer(sk).includes(n))delete S.abil[k]}
   if(S.freeAb&&S.species!=='human')S.freeAb='';
@@ -380,13 +388,14 @@ function stepSpecies(){
 }
 function stepAttrs(){
   const used=baseSpent(),b=bonus();
-  let h=`<h2>Distribute attributes</h2><p class="lede">Spend ${POINTS} points. No attribute may pass ${ATTR_CAP} at creation, species bonus included. Each point becomes a skill rank to spend in that attribute.</p>
-  <p class="meter ${used>POINTS?'over':''}"><b>${POINTS-used}</b> of ${POINTS} points left</p>`;
+  let h=`<h2>Distribute attributes</h2><p class="lede">Spend ${totalPts()} points. No attribute may pass ${attrCap()}${XP().attr>0?'':' at creation'}, species bonus included. Each point becomes a skill rank to spend in that attribute.</p>
+  <p class="meter ${used>POINTS?'over':''}"><b>${totalPts()-used}</b> of ${totalPts()} points left</p>
+  <div class="row"><span class="lab">Bonus attribute points<small>Awarded in play. Raises the cap to 10.</small></span><span class="step"><button data-a="xp" data-v="attr" data-d="-1" ${XP().attr<=0?'disabled':''}>−</button><output>${XP().attr}</output><button data-a="xp" data-v="attr" data-d="1" ${XP().attr>=20?'disabled':''}>+</button></span></div>`;
   for(const a of ATTRS){
-    const cap=ATTR_CAP-b[a];
+    const cap=attrCap()-b[a];
     h+=`<div class="row"><span class="lab">${AL[a]}<small>${ADESC[a]}</small></span>
       ${b[a]?`<span class="chip">+${b[a]} species</span>`:''}
-      <span class="step"><button data-a="attr" data-v="${a}" data-d="-1" ${S.base[a]<=0?'disabled':''}>−</button><output>${S.base[a]}</output><button data-a="attr" data-v="${a}" data-d="1" ${S.base[a]>=cap||used>=POINTS?'disabled':''}>+</button></span>
+      <span class="step"><button data-a="attr" data-v="${a}" data-d="-1" ${S.base[a]<=0?'disabled':''}>−</button><output>${S.base[a]}</output><button data-a="attr" data-v="${a}" data-d="1" ${S.base[a]>=cap||used>=totalPts()?'disabled':''}>+</button></span>
       <span class="final">= ${final(a)} total</span></div>`;
   }
   h+=`<h3>Derived</h3><div class="stats"><div class="stat"><span>Arc Pool</span><b>${arcPool()}</b></div><div class="stat"><span>Speed</span><b>3</b></div></div>
@@ -399,7 +408,8 @@ function stepCareer(){
   return h+'</div>';
 }
 function stepSkills(){
-  let h=`<h2>Skills and abilities</h2><p class="lede">Every point of an attribute is one skill rank. Each skill's ranks are also its ability points: spend them on that skill's abilities (a skill with 3 ranks has 3 ability points). Abilities do not use up your attribute points. Each ability shows its cost; \"est.\" costs are placeholders.</p>`;
+  let h=`<h2>Skills and abilities</h2><div class="row"><span class="lab">Bonus ability points<small>Spend beyond a skill's ranks. <b>${bankLeft()}</b> of ${XP().abil} unused.</small></span><span class="step"><button data-a="xp" data-v="abil" data-d="-1" ${XP().abil<=0?'disabled':''}>−</button><output>${XP().abil}</output><button data-a="xp" data-v="abil" data-d="1" ${XP().abil>=40?'disabled':''}>+</button></span></div>
+  <p class="lede">Every point of an attribute is one skill rank. Each skill's ranks are also its ability points: spend them on that skill's abilities (a skill with 3 ranks has 3 ability points). Abilities do not use up your attribute points. Each ability shows its cost; \"est.\" costs are placeholders.</p>`;
   S.col=S.col||{};
   h+=`<div class="actions" style="margin:0 0 6px"><button class="btn" data-a="col" data-v="*open">Expand all</button><button class="btn" data-a="col" data-v="*shut">Collapse all</button></div>`;
   for(const a of ATTRS){
@@ -414,11 +424,11 @@ function stepSkills(){
       const abs=sk[s];
       const showAbs=abs.filter(x=>r>0||S.freeAb===abKey(s,x));
       if(showAbs.length&&!sc){
-        h+=`<div class="abilities"><p class="meter" style="margin:0 0 4px">${s} ability points: <b>${abLeft(s)}</b> of ${r} left</p>`;
+        h+=`<div class="abilities"><p class="meter" style="margin:0 0 4px">${s} ability points: <b>${Math.max(0,abLeft(s))}</b> of ${r} left${abLeft(s)<0?` · ${-abLeft(s)} from bonus`:''}</p>`;
         for(const x of showAbs){
           const k=abKey(s,x),ar=abRank(s,x),free=S.freeAb===k;
-          const maxR=Math.min(MAXR[x]||5,Math.max(r,free?1:0));
-          const uc=unitCost(x),step=ar<maxR&&reqOk(x)&&(abLeft(s)>=uc||(free&&ar===0));
+          const maxR=Math.min(MAXR[x]||5,XP().abil>0?5:Math.max(r,free?1:0));
+          const uc=unitCost(x),step=ar<maxR&&reqOk(x)&&(canSpend(s,uc)||(free&&ar===0));
           h+=`<div class="row"><span class="lab">${x} <span class="chip">${uc}${(MAXR[x]||5)>1?'/rank':' pt'}${EST.includes(x)?' est.':''}</span>${free?' <span class="chip">free R1</span>':''}</span><span class="step"><button data-a="abil" data-v="${k}" data-d="-1" ${ar<=0?'disabled':''}>−</button><output>${ar}</output><button data-a="abil" data-v="${k}" data-d="1" ${step?'':'disabled'}>+</button></span><span class="fx">${ar?AB[x](ar):'Not learned.'}</span></div>`;
         }
         h+='</div>';
@@ -432,7 +442,7 @@ function stepSkills(){
   else{
     h+=`<p class="meter">Paid from your ${cc.sk.map(k=>`${k} <b>${abLeft(k)}</b>`).join(' · ')} ability points left. Cost is the number on the chip. Only ${S.career} abilities show here.</p>${cc.note?`<p class="meter">${cc.note}</p>`:''}<div class="abilities">`;
     for(const [x,r,fx] of cc.list){
-      const own=cc.sk.some(k=>abRank(k,'C:'+x)),can=!own&&cc.sk.some(k=>skillRank(k)>0&&abLeft(k)>=r);
+      const own=cc.sk.some(k=>abRank(k,'C:'+x)),can=!own&&cc.sk.some(k=>skillRank(k)>0&&canSpend(k,r));
       h+=`<div class="row"><span class="lab">${x} <span class="chip">${r} pt${r>1?'s':''}</span></span><span class="step"><button data-a="abc" data-v="${x}" data-d="-1" ${own?'':'disabled'}>−</button><output>${own?1:0}</output><button data-a="abc" data-v="${x}" data-d="1" ${can?'':'disabled'}>+</button></span><span class="fx">${fx}</span></div>`;
     }
     h+='</div>';
@@ -483,7 +493,7 @@ function warnings(){
   if(!S.name.trim())w.push('Your character has no name.');
   if(!S.species)w.push('No species chosen.');
   if(S.species==='human'&&floatLeft()>0)w.push(`${floatLeft()} Human floating points unplaced.`);
-  if(baseSpent()<POINTS)w.push(`${POINTS-baseSpent()} attribute points unspent.`);
+  if(baseSpent()<totalPts())w.push(`${totalPts()-baseSpent()} attribute points unspent.`);
   if(!S.career)w.push('No career chosen.');
   for(const a of ATTRS){if(a!=='toughness'&&left(a)>0)w.push(`${left(a)} ${AL[a]} rank${left(a)>1?'s':''} unspent.`)}
   if(digiSpent()>budget())w.push(`Over budget by ${digiSpent()-budget()} Digi.`);
@@ -713,7 +723,7 @@ function playView(){
 
 /* ---------- shell ---------- */
 const FNS=[stepSpecies,stepAttrs,stepCareer,stepSkills,stepGear,stepSheet];
-function done(i){return [!!S.species&&(S.species!=='human'||floatLeft()===0),baseSpent()===POINTS,!!S.career,ATTRS.every(a=>left(a)===0||a==='toughness'),(digiSpent()>0&&digiSpent()<=budget())||!!(S.gear||S.notes),warnings().length===0][i]}
+function done(i){return [!!S.species&&(S.species!=='human'||floatLeft()===0),baseSpent()===totalPts(),!!S.career,ATTRS.every(a=>left(a)===0||a==='toughness'),(digiSpent()>0&&digiSpent()<=budget())||!!(S.gear||S.notes),warnings().length===0][i]}
 function render(){
   normalize();WEAPONS=myWeapons();save();
   const nb=S.mode!=='build';
@@ -738,7 +748,7 @@ document.addEventListener('click',e=>{
   switch(t.dataset.a){
     case 'mode':S.mode=v;break;
     case 'go':S.step=+v;break;
-    case 'species':if(S.species!==v){S.species=v;S.hFloat={};S.freeAb='';for(const a of ATTRS)if(S.base[a]+0>ATTR_CAP)S.base[a]=ATTR_CAP}break;
+    case 'species':if(S.species!==v){S.species=v;S.hFloat={};S.freeAb='';for(const a of ATTRS)if(S.base[a]+0>attrCap())S.base[a]=attrCap()}break;
     case 'ftrait':S.fTrait=v;break;
     case 'vp':S.vPrimary=v;break;
     case 'vx':S.vExtra=v;break;
@@ -750,9 +760,10 @@ document.addEventListener('click',e=>{
       for(const x of SKILLS[at][v]){const k=abKey(v,x),cap=(S.freeAb===k?Math.max(r,1):r);if(abRank(v,x)>cap){if(cap)S.abil[k]=cap;else delete S.abil[k]}}break}
     case 'buy':{const n=Math.max(0,(S.buy[v]||0)+d);if(n)S.buy[v]=Math.min(n,9);else delete S.buy[v];break}
     case 'armor':S.armor=S.armor===v?'':v;break;
+    case 'xp':{const x=XP();x[v]=Math.max(0,Math.min(v==='attr'?20:40,x[v]+d));break}
     case 'abc':{const cc=CAREER_AB[S.career];if(!cc)break;const it=cc.list.find(l=>l[0]===v);if(!it)break;
       if(d<0){for(const k of cc.sk)delete S.abil[abKey(k,'C:'+v)]}
-      else if(!cc.sk.some(k=>abRank(k,'C:'+v))){const k=cc.sk.filter(k=>skillRank(k)>0&&abLeft(k)>=it[1]).sort((a,b)=>abLeft(b)-abLeft(a))[0];if(k)S.abil[abKey(k,'C:'+v)]=1}
+      else if(!cc.sk.some(k=>abRank(k,'C:'+v))){const k=cc.sk.filter(k=>skillRank(k)>0&&canSpend(k,it[1])).sort((a,b)=>abLeft(b)-abLeft(a))[0];if(k)S.abil[abKey(k,'C:'+v)]=1}
       break}
     case 'abil':{const n=Math.max(0,(S.abil[v]||0)+d);if(n)S.abil[v]=n;else delete S.abil[v];for(const x in REQ){const q=REQ[x],k2=abKey(q[0],x);if(S.abil[k2]&&abRank(q[0],q[1])<q[2])delete S.abil[k2]}break}
     case 'free':{S.freeAb=S.freeAb===v?'':v;break}
