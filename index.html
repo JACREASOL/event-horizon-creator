@@ -263,7 +263,7 @@ const SPECIES={
 };
 const CAREERS=[
   ['Merchant',1],['Scholar',1],['Medic',1],['Pilot',2],['Engineer',2],['Investigator',2],
-  ['Soldier',3],['Bounty Hunter',3],['Smuggler',3],['Dreadknight',4],['Black-market Operative',4]];
+  ['Soldier',3],['Bounty Hunter',3],['Smuggler',3],['Hacker',3],['Dreadknight',4],['Black-market Operative',4]];
 const TIER={1:'Standard',2:'Moderate',3:'Higher',4:'Highest'};
 const STEPS=['Species','Attributes','Career','Skills','Gear','Sheet'];
 
@@ -402,7 +402,7 @@ function stepSkills(){
   if(!S.career)h+='<p class="lede" style="font-size:13px">Pick a career to see its abilities.</p>';
   else if(!cc)h+='<p class="lede" style="font-size:13px">No abilities written for this career yet.</p>';
   else{
-    h+=`<p class="meter">Paid from your ${cc.sk.map(k=>`${k} <b>${abLeft(k)}</b>`).join(' · ')} ability points left. Cost is the number on the chip. Only ${S.career} abilities show here.</p><div class="abilities">`;
+    h+=`<p class="meter">Paid from your ${cc.sk.map(k=>`${k} <b>${abLeft(k)}</b>`).join(' · ')} ability points left. Cost is the number on the chip. Only ${S.career} abilities show here.</p>${cc.note?`<p class="meter">${cc.note}</p>`:''}<div class="abilities">`;
     for(const [x,r,fx] of cc.list){
       const own=cc.sk.some(k=>abRank(k,'C:'+x)),can=!own&&cc.sk.some(k=>skillRank(k)>0&&abLeft(k)>=r);
       h+=`<div class="row"><span class="lab">${x} <span class="chip">${r} pt${r>1?'s':''}</span></span><span class="step"><button data-a="abc" data-v="${x}" data-d="-1" ${own?'':'disabled'}>−</button><output>${own?1:0}</output><button data-a="abc" data-v="${x}" data-d="1" ${can?'':'disabled'}>+</button></span><span class="fx">${fx}</span></div>`;
