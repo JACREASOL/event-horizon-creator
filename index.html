@@ -73,6 +73,8 @@ h3{font:600 13px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;col
 .meter{font:500 13px var(--f-mono);color:var(--muted)}
 .meter b{color:var(--ink)}
 .meter.over{color:var(--bad)}
+.spimg{display:block;width:100%;max-height:170px;object-fit:cover;object-position:top;border-radius:8px;margin-bottom:6px}
+.spbig{display:block;width:min(280px,80%);margin:0 auto 10px;border-radius:12px;border:1px solid var(--line)}
 .tgl{background:none;border:0;color:var(--muted,#9aa);font-size:16px;line-height:1;padding:2px 6px;min-width:28px;min-height:28px;cursor:pointer}
 .abilities{margin:4px 0 8px 14px;padding-left:12px;border-left:2px solid var(--line)}
 .abilities .row{border-bottom:0;padding:5px 0}
@@ -328,11 +330,11 @@ function chipsFor(k){
 function stepSpecies(){
   let h=`<h2>Choose your species</h2><p class="lede">Species sets your attribute bonuses and special abilities. Kongari is not covered in your species file, so it is left out for now.</p><div class="grid">`;
   for(const k in SPECIES){const sp=SPECIES[k];
-    h+=`<button class="card" data-a="species" data-v="${k}" aria-pressed="${S.species===k}"><strong>${sp.name}</strong><small>${sp.tag}</small><span class="chips">${chipsFor(k)}</span></button>`}
+    h+=`<button class="card" data-a="species" data-v="${k}" aria-pressed="${S.species===k}"><img class="spimg" src="species/${k}.jpg" alt="" onerror="this.remove()"><strong>${sp.name}</strong><small>${sp.tag}</small><span class="chips">${chipsFor(k)}</span></button>`}
   h+='</div>';
   const sp=SPECIES[S.species];
   if(sp){
-    h+=`<div class="detail"><h3>${sp.name} traits</h3>`;
+    h+=`<div class="detail"><img class="spbig" src="species/${S.species}.jpg" alt="${sp.name}" onerror="this.remove()"><h3>${sp.name} traits</h3>`;
     if(sp.choose){
       h+=`<div class="trait"><b>Choose one trait</b><div class="pillrow" style="margin-top:6px">`+sp.choose.map(c=>`<button class="pill" data-a="ftrait" data-v="${c[0]}" aria-pressed="${S.fTrait===c[0]}">${c[1]}</button>`).join('')+`</div>`;
       const c=sp.choose.find(c=>c[0]===S.fTrait);h+=`<p>${c[2]}</p></div>`;
