@@ -304,7 +304,7 @@ const TIER={1:'Low',2:'Moderate',3:'Higher',4:'Extreme'};
 const STEPS=['Species','Attributes','Career','Skills','Gear','Sheet'];
 
 const blank=()=>({mode:'build',pcode:'',pid:'',gm:false,inParty:false,pl:{init:false,hp:0,hpMax:0,ap:12,apMax:12,arc:0,favor:0,sil:1,still:0,round:1,uny:false,rapid:false,wi:0,band:1,cover:0,tcover:0,aim:false,pack:false,enemyEv:5,ecn:0,dn:13,mod:0,dmg:3,spend:1,res:null,last:null,log:[]},step:0,name:'',species:'',vPrimary:'muscles',vExtra:'charm',fTrait:'regen',hFloat:{},
-  base:Object.fromEntries(ATTRS.map(a=>[a,0])),career:'',skills:{},abil:{},xp:{attr:0,abil:0},freeAb:'',buy:{},armor:'',gear:'',notes:''});
+  base:Object.fromEntries(ATTRS.map(a=>[a,0])),career:'',skills:{},abil:{},xp:{attr:0,abil:0},freeAb:'',arcAb:{},buy:{},armor:'',gear:'',notes:''});
 let S=blank();
 try{const raw=localStorage.getItem('eh-char');if(raw){S=Object.assign(blank(),JSON.parse(raw))}}catch(e){}
 function save(){try{localStorage.setItem('eh-char',JSON.stringify(S))}catch(e){}}
@@ -352,7 +352,7 @@ function normalize(){
     if(!o)break;const k=abKey(sk,o);if(--S.abil[k]<=0)delete S.abil[k];if(S.freeAb===k&&!S.abil[k])S.freeAb='';
   }
   for(const k of Object.keys(S.abil)){const [sk,n]=k.split('|');if(n.startsWith('C:')&&!abCareer(sk).includes(n))delete S.abil[k]}
-  S.freeAb='';
+  S.freeAb='';if(!S.arcAb)S.arcAb={};
   for(const k of Object.keys(S.skills))if(!allSkills().includes(k))delete S.skills[k];
   for(const k of Object.keys(S.abil)){const [sk,n]=k.split('|');if(!allSkills().includes(sk)||(!n.startsWith('C:')&&!(SKILLS[ATTRS.find(a=>SKILLS[a][sk])][sk]||[]).includes(n)))delete S.abil[k]}
 }
@@ -449,8 +449,18 @@ function stepSkills(){
     }
     h+='</div>';
   }
+  h+=`<h3>Arc abilities</h3><p class="meter">Arc Pool ${arcPool()}. Add the ones you know. Each use spends its cost from the pool${S.species==='tendrix'?' (Arc Precision already applied)':''}. Going over the pool triggers Arc Overload.</p><div class="abilities">`;
+  for(const [x,n,fx] of ARC_AB)h+=`<div class="row" style="align-items:flex-start;flex-wrap:wrap"><span class="lab">${x} <span class="chip">${arcCost(n)} Arc</span></span><button class="pill" data-a="arcab" data-v="${x}" aria-pressed="${hasArc(x)}">${hasArc(x)?'Added':'Add'}</button><span class="fx" style="flex:1 1 100%">${fx}</span></div>`;
+  h+='</div>';
   return h;
 }
+const ARC_AB=[
+ ['Arc Lance',5,'Range 50 ft. 2d6 lightning damage. Ignores cover.',[2,6]],
+ ['Magnetic Crush',3,'Range 20 ft. Stun one armored target for 1 round. Automatic, no roll to resist. Flagged for playtest.'],
+ ['Plasma Stitch',3,'Touch. Heal 1d8 to an ally or yourself.',[1,8]],
+ ['Purge Pulse',3,'20 ft pulse that clears toxins, spore clouds and Toxin effects.']];
+const arcCost=n=>S.species==='tendrix'?Math.max(1,n-1):n;
+const hasArc=x=>!!(S.arcAb&&S.arcAb[x]);
 const buyN=k=>S.buy[k]||0;
 const openD={};document.addEventListener('toggle',e=>{const w=e.target.dataset&&e.target.dataset.w;if(w)openD[w]=e.target.open},true);
 function digiSpent(){
@@ -518,6 +528,7 @@ function textSheet(){
     L.push(`- ${s} ${r}${ab.length?' ['+ab.join(', ')+']':''}`);
   }
   {const cc=CAREER_AB[S.career];if(cc){const own=cc.list.filter(l=>cc.sk.some(k=>abRank(k,'C:'+l[0])));if(own.length){L.push('',`${S.career.toUpperCase()} ABILITIES`);for(const l of own)L.push(`- ${l[0]}: ${l[2]}`)}}}
+  {const ar=ARC_AB.filter(a=>hasArc(a[0]));if(ar.length){L.push('','ARC ABILITIES');for(const a of ar)L.push(`- ${a[0]} (${arcCost(a[1])} Arc): ${a[2]}`)}}
   if(S.freeAb){const [s,x]=S.freeAb.split('|');if(!abRank(s,x))L.push(`- Free ability: ${x} R1`)}
   if(!any&&!S.freeAb)L.push('- none');
   {const gl=[];for(const k in S.buy){const p=k.split('|'),q=S.buy[k];gl.push(p[0]==='w'?`${q}× ${p[1]} (${TIERS[+p[2]]})`:`${q}× ${p[1]}`)}
@@ -685,6 +696,11 @@ function playAct(a,t){
       if(v==='hour'){p.arc=Math.min(arcPool(),p.arc+1);setRes('One hour passes',['+1 natural Arc.'],'neutral')}
       break}
     case 'parc':spendArc(p.spend);break;
+    case 'pcast':{const a=ARC_AB.find(x=>x[0]===v);if(!a)break;const n=arcCost(a[1]);spendArc(n);
+      if(!p.res)break;p.res.h=(p.res.h.startsWith('Arc Overload')?'Arc Overload: ':'')+v;
+      p.res.lines.unshift(`${v}: ${a[2]}`);
+      if(a[3]){let t=0;const rs=[];for(let i=0;i<a[3][0];i++){const r=roll(a[3][1]);rs.push(r);t+=r}p.res.lines.push(`${a[3][0]}d${a[3][1]}: [${rs.join(', ')}] = ${t}`)}
+      p.log.unshift(`R${p.round} · ${v} (${n} Arc)`);break}
     case 'pround':{p.round++;if(v==='moved')p.still=0;else p.still=Math.min(9,p.still+1);
       const L=[v==='moved'?'You moved, so Evasion resets.':'You stood still: Evasion drops 1.'];
       if(p.cond&&p.cond.Poisoned){const r=roll(4);p.hp=Math.max(0,p.hp-r);L.push(`Poisoned: ${r} damage (1d4).${p.hp<=0?' You are at 0 HP.':''}`)}
@@ -720,6 +736,7 @@ function playView(){
   }
   h+=`</div><p class="lede" style="font-size:13px;margin-top:6px">Greyed skills are untrained (+0).</p>
   ${kab.length?`<h3>Abilities</h3><div class="abilities">${kab.map(a=>`<div class="row" style="align-items:flex-start"><span class="lab">${a.x} <span class="chip">R${a.r}</span></span><span class="fx" style="flex:1">${a.fx}</span></div>`).join('')}</div>`:''}
+${ARC_AB.some(a=>hasArc(a[0]))?`<h3>Arc abilities</h3><div class="actions" style="margin-top:0">${ARC_AB.filter(a=>hasArc(a[0])).map(a=>`<button class="btn" data-a="pcast" data-v="${a[0]}">${a[0]} · ${arcCost(a[1])} Arc</button>`).join('')}</div>`:''}
   <h3>Attack</h3>
   <div class="pillrow">${WEAPONS.map((x,i)=>`<button class="pill" data-a="pset" data-k="wi" data-v="${i}" aria-pressed="${p.wi===i}">${x.n} · ${x.dice[0]}d${x.dice[1]}${x.plus?'+'+x.plus:''}</button>`).join('')}</div>
   ${S.buy&&Object.keys(S.buy).length?'':'<p class="lede" style="font-size:13px">No weapons bought. Add some on the Equipment step.</p>'}
@@ -790,6 +807,7 @@ document.addEventListener('click',e=>{
     case 'buy':{const n=Math.max(0,(S.buy[v]||0)+d);if(n)S.buy[v]=Math.min(n,9);else delete S.buy[v];break}
     case 'armor':S.armor=S.armor===v?'':v;break;
     case 'xp':{const x=XP();x[v]=Math.max(0,Math.min(v==='attr'?20:40,x[v]+d));break}
+    case 'arcab':{if(!S.arcAb)S.arcAb={};if(S.arcAb[v])delete S.arcAb[v];else S.arcAb[v]=true;break}
     case 'abc':{const cc=CAREER_AB[S.career];if(!cc)break;const it=cc.list.find(l=>l[0]===v);if(!it)break;
       if(d<0){for(const k of cc.sk)delete S.abil[abKey(k,'C:'+v)]}
       else if(!cc.sk.some(k=>abRank(k,'C:'+v))){const k=cc.sk.filter(k=>skillRank(k)>0&&canSpend(k,it[1])).sort((a,b)=>abLeft(b)-abLeft(a))[0];if(k)S.abil[abKey(k,'C:'+v)]=1}
