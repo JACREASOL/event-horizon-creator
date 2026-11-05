@@ -301,7 +301,7 @@ const CONDS=[['Pinned','Cannot move freely; a full action to escape.'],['Slowed'
 const CAREERS=[
   ['Medic',1],['Soldier',3],['Bounty Hunter',3],['Smuggler',3],['Hacker',3]];
 const TIER={1:'Low',2:'Moderate',3:'Higher',4:'Extreme'};
-const STEPS=['Species','Attributes','Career','Skills','Gear','Sheet'];
+const STEPS=['Species','Attributes','Career','Skills','Arc','Gear','Sheet'];
 
 const blank=()=>({mode:'build',pcode:'',pid:'',gm:false,inParty:false,pl:{init:false,hp:0,hpMax:0,ap:12,apMax:12,arc:0,favor:0,sil:1,still:0,round:1,uny:false,rapid:false,wi:0,band:1,cover:0,tcover:0,aim:false,pack:false,enemyEv:5,ecn:0,dn:13,mod:0,dmg:3,spend:1,res:null,last:null,log:[]},step:0,name:'',species:'',vPrimary:'muscles',vExtra:'charm',fTrait:'regen',hFloat:{},
   base:Object.fromEntries(ATTRS.map(a=>[a,0])),career:'',skills:{},abil:{},xp:{attr:0,abil:0},freeAb:'',arcAb:{},buy:{},armor:'',gear:'',notes:''});
@@ -449,9 +449,6 @@ function stepSkills(){
     }
     h+='</div>';
   }
-  h+=`<h3>Arc abilities</h3><p class="meter">Arc Pool ${arcPool()}. Add the ones you know. Each use spends its cost from the pool${S.species==='tendrix'?' (Arc Precision already applied)':''}. Going over the pool triggers Arc Overload.</p><div class="abilities">`;
-  for(const [x,n,fx] of ARC_AB)h+=`<div class="row" style="align-items:flex-start;flex-wrap:wrap"><span class="lab">${x} <span class="chip">${arcCost(n)} Arc</span></span><button class="pill" data-a="arcab" data-v="${x}" aria-pressed="${hasArc(x)}">${hasArc(x)?'Added':'Add'}</button><span class="fx" style="flex:1 1 100%">${fx}</span></div>`;
-  h+='</div>';
   return h;
 }
 const ARC_AB=[
@@ -461,6 +458,13 @@ const ARC_AB=[
  ['Purge Pulse',3,'20 ft pulse that clears toxins, spore clouds and Toxin effects.']];
 const arcCost=n=>S.species==='tendrix'?Math.max(1,n-1):n;
 const hasArc=x=>!!(S.arcAb&&S.arcAb[x]);
+function stepArc(){
+  const sp=SPECIES[S.species]||{};
+  let h=`<h2>Arc</h2><p class="lede">Your Arc Pool is (Knowledge + Memory) × 3${sp.arc?` + ${sp.arc} species Arc`:''} = <b>${arcPool()}</b>. Add the Arc abilities you know. Each use spends its cost from the pool${S.species==='tendrix'?' (Arc Precision already applied)':''}. Going over the pool triggers Arc Overload.</p><div class="abilities">`;
+  for(const [x,n,fx] of ARC_AB)h+=`<div class="row" style="align-items:flex-start;flex-wrap:wrap"><span class="lab">${x} <span class="chip">${arcCost(n)} Arc</span></span><button class="pill" data-a="arcab" data-v="${x}" aria-pressed="${hasArc(x)}">${hasArc(x)?'Added':'Add'}</button><span class="fx" style="flex:1 1 100%">${fx}</span></div>`;
+  h+='</div>';
+  return h;
+}
 const buyN=k=>S.buy[k]||0;
 const openD={};document.addEventListener('toggle',e=>{const w=e.target.dataset&&e.target.dataset.w;if(w)openD[w]=e.target.open},true);
 function digiSpent(){
@@ -768,8 +772,8 @@ ${ARC_AB.some(a=>hasArc(a[0]))?`<h3>Arc abilities</h3><div class="actions" style
 }
 
 /* ---------- shell ---------- */
-const FNS=[stepSpecies,stepAttrs,stepCareer,stepSkills,stepGear,stepSheet];
-function done(i){return [!!S.species&&(S.species!=='human'||floatLeft()===0),baseSpent()===totalPts(),!!S.career,ATTRS.every(a=>left(a)===0),(digiSpent()>0&&digiSpent()<=budget())||!!(S.gear||S.notes),warnings().length===0][i]}
+const FNS=[stepSpecies,stepAttrs,stepCareer,stepSkills,stepArc,stepGear,stepSheet];
+function done(i){return [!!S.species&&(S.species!=='human'||floatLeft()===0),baseSpent()===totalPts(),!!S.career,ATTRS.every(a=>left(a)===0),Object.keys(S.arcAb||{}).length>0,(digiSpent()>0&&digiSpent()<=budget())||!!(S.gear||S.notes),warnings().length===0][i]}
 function render(){
   normalize();WEAPONS=myWeapons();save();
   const nb=S.mode!=='build';
