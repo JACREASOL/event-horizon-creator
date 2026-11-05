@@ -212,7 +212,15 @@ const CAREER_AB={
   ['Fast Talk',2,'Talk past a guard or suspicious NPC. Roll Charm vs. Memory. On success, no search.'],
   ['Black Market Contact',2,'Once per session, source restricted gear or information at Black Market tier (price set by GM).'],
   ['Slippery',3,'During a chase, +2 to all rolls to evade, hide, or outmaneuver the pursuer. (Piloting)'],
-  ['Ghost Run',5,'Once per session, your ship goes dark: no transponder, no emissions, undetectable for 10 min. Cannot fire while active. (Piloting)']]}
+  ['Ghost Run',5,'Once per session, your ship goes dark: no transponder, no emissions, undetectable for 10 min. Cannot fire while active. (Piloting)']]},
+ 'Performer':{label:'Charm / Deception / Perception / Lore',sk:CHARMSK.concat(['Perception','Lore']),list:[
+  ['Commanding Presence',2,'When you speak to a crowd or NPC group, all targets must pass Memory Standard (10) or be Distracted for 1 turn. (Charm)'],
+  ['Silver Tongue',3,'Once per scene, reroll a failed Charm check and take the higher result. (Charm)'],
+  ['Read the Room',2,'Before a social encounter, learn one NPC\'s current emotional state or primary motivation (GM reveals one detail). (Perception)'],
+  ['Play Dead',3,'Convince onlookers you are unconscious or dead. Requires stillness. Lasts until you act or are touched. (Deception)'],
+  ['Crowd Cover',2,'In a public space, blend into a crowd. Pursuit checks against you are Hard (15) for the scene. (Deception)'],
+  ['Inspiration',4,'Once per combat, an ally within medium range gains +1 to all rolls for 2 turns. (Charm)'],
+  ['Cultural Lore',2,'Know customs, symbols, and taboos of any species you have met. Avoid social blunders automatically. (Lore)']]}
 };
 const careerCost=n=>{const c=CAREER_AB[S.career];const it=c&&c.list.find(l=>l[0]===n);return it?it[1]:1};
 const unitCost=x=>x.startsWith('C:')?careerCost(x.slice(2)):(COST[x]||ABILITY_RANK_COST);
@@ -314,7 +322,7 @@ const INJURY=[
   [1,5,'DEAD','Character dies. A Revive Kit can reverse this within 2 turns.'],[6,10,'Massive Hemorrhage','Lose 2 HP per turn until stabilized. Cannot act until stopped.'],[11,15,'Organ Trauma','Lose 1 HP per turn. -2 to all rolls until treated.'],[16,20,'Limb Removed','One limb severed (GM calls which). -2 to rolls needing it. Permanent until prosthetic.'],[21,28,'Broken Limb','Cannot use that limb. -2 to rolls needing it. Heals after Downtime.'],[29,36,'Deep Wound','Lose 1 HP per turn for 3 turns. -1 to all rolls until treated.'],[37,44,'Concussion','Stunned 1 turn, then -2 to Knowledge and Memory rolls until Rested.'],[45,52,'Unconscious','Out for 1d4 turns. Allies must carry or leave you.'],[53,60,'Shattered Ribs','-1 to all physical rolls. No sprinting. Heals after Downtime.'],[61,68,'Eye Damage','Blind in one eye. -2 to ranged attacks and Perception. Permanent until treated.'],[69,76,'Muscle Tear','-1 to Muscles or Accuracy rolls. Heals after Downtime.'],[77,83,'Nerve Damage','-1 to Accuracy and fine motor rolls. Heals after Downtime.'],[84,89,'Stunned','Lose your next action. No lasting effect.'],[90,94,'Winded','Lose your Move action next turn.'],[95,99,'Superficial Wound','Cosmetic only. No penalty.'],[100,100,'Adrenaline Surge','No injury. Gain 1 Momentum and +2 to all rolls until the end of the encounter.']];
 const CONDS=[['Pinned','Cannot move freely; a full action to escape.'],['Slowed','Speed halved.'],['Prone','-2 to your attacks; +2 to enemy attacks against you.'],['Poisoned','1d4 damage per turn until treated.'],['Blinded','-4 to rolls requiring sight.'],['Stunned','Lose your next action.'],['Panicked','Must move away from the source of fear.'],['Restrained','Cannot move; can still act.']];
 const CAREERS=[
-  ['Medic',1],['Soldier',3],['Bounty Hunter',3],['Smuggler',3],['Hacker',3]];
+  ['Medic',1],['Soldier',3],['Bounty Hunter',3],['Smuggler',3],['Hacker',3],['Performer',2]];
 const TIER={1:'Low',2:'Moderate',3:'Higher',4:'Extreme'};
 const STEPS=['Species','Attributes','Career','Skills','Arc','Gear','Sheet'];
 
