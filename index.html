@@ -293,7 +293,8 @@ const ITEMS=[
   ['Hacking Rig',200,'Grants the Hacker their Bandwidth pool.','Tech'],['Toolkit',100,'Needed for repairs and modifications.','Tech'],['Ghost Spike',100,'One use. Bypasses a basic lock or terminal. Needs rank 1 in the relevant skill.','Tech'],['Signal Jammer',200,'Blocks comms and drones within 50 ft for 3 turns.','Tech'],['Drone Hijacker',250,'Take over a drone for 3 turns.','Tech'],['Bandwidth Cell',75,'One use. Restores 2 Bandwidth.','Tech'],['Repair Drone',200,'Restores 2 AP per turn to one armor piece for 3 turns.','Tech'],
   ['Scanner',50,'+2 on detection checks.','Recon'],['Forensic Kit',150,'+2 to examining scenes and bodies.','Recon'],['Lie Sensor',200,'Reads stress. +2 vs. deception.','Recon'],['Tracker Tag',75,'Sticks to a target. Tracks for 24 hours.','Recon'],['Directional Earpiece',0,'+3 to Eavesdropping with range and line of sight. Price not set.','Recon'],
   ['Stun Cuffs',100,'Binds a Prone target. Cannot act until freed.','Combat'],['Net Launcher',200,'Range 30 ft. Target is Slowed until freed.','Combat'],['Stun Baton',250,'1d4 melee. Target is Slowed 1 turn on hit.','Combat'],['Grenade',100,'1d8 damage, 3 ft diameter. Evasion roll or +1d8.','Combat'],['Smoke Grenade',50,'Blocks line of sight, 20 ft radius, 3 turns.','Combat'],['Flashbang',100,'Targets in 20 ft lose next Action. One per fight.','Combat'],['Welder Torch',150,'1d6 melee. Cuts through doors.','Combat'],['Deployable Turret',500,'1d6 shots, 8 uses. Needs a Toolkit to set up.','Combat'],['Gravity Grenade',1500,'Black Market. Single use. Zero-G, Heavy-G, or Implosion mode, 20 ft radius.','Combat'],
-  ['Grapple Line',100,'Climb or swing 60 ft.','Mobility'],['Jetpack',500,'Fly at Speed for 3 turns. One use per Rest.','Mobility'],['Cloak Field',800,'Invisible for 3 turns. Breaks when you attack.','Mobility'],['Energy Shield',700,'+10 AP pool, regenerates 2 AP/turn.','Defense']];
+  ['Grapple Line',100,'Climb or swing 60 ft.','Mobility'],['Jetpack',500,'Fly at Speed for 3 turns. One use per Rest.','Mobility'],['Cloak Field',800,'Invisible for 3 turns. Breaks when you attack.','Mobility'],['Energy Shield',700,'+10 AP pool, regenerates 2 AP/turn.','Defense'],
+  ['Arc Cell (Small)',200,'Refills 5 Arc. One use.','Arc'],['Arc Cell (Medium)',500,'Refills 15 Arc. One use.','Arc'],['Arc Cell (Large)',1200,'Full Arc refill. One use.','Arc']];
 const KITS=[['500','Standard weapon (200), full Cheap armor (300).'],['800','Standard weapon (200), full Cheap armor (300), Medkit and Scanner (150), 150 spare.'],['1,200','Military weapon (800), full Cheap armor (300), Medkit (100).'],['2,000','Military weapon (800), full Standard armor (1,200).']];
 const INJURY=[
   [1,5,'DEAD','Character dies. A Revive Kit can reverse this within 2 turns.'],[6,10,'Massive Hemorrhage','Lose 2 HP per turn until stabilized. Cannot act until stopped.'],[11,15,'Organ Trauma','Lose 1 HP per turn. -2 to all rolls until treated.'],[16,20,'Limb Removed','One limb severed (GM calls which). -2 to rolls needing it. Permanent until prosthetic.'],[21,28,'Broken Limb','Cannot use that limb. -2 to rolls needing it. Heals after Downtime.'],[29,36,'Deep Wound','Lose 1 HP per turn for 3 turns. -1 to all rolls until treated.'],[37,44,'Concussion','Stunned 1 turn, then -2 to Knowledge and Memory rolls until Rested.'],[45,52,'Unconscious','Out for 1d4 turns. Allies must carry or leave you.'],[53,60,'Shattered Ribs','-1 to all physical rolls. No sprinting. Heals after Downtime.'],[61,68,'Eye Damage','Blind in one eye. -2 to ranged attacks and Perception. Permanent until treated.'],[69,76,'Muscle Tear','-1 to Muscles or Accuracy rolls. Heals after Downtime.'],[77,83,'Nerve Damage','-1 to Accuracy and fine motor rolls. Heals after Downtime.'],[84,89,'Stunned','Lose your next action. No lasting effect.'],[90,94,'Winded','Lose your Move action next turn.'],[95,99,'Superficial Wound','Cosmetic only. No penalty.'],[100,100,'Adrenaline Surge','No injury. Gain 1 Momentum and +2 to all rolls until the end of the encounter.']];
@@ -352,7 +353,7 @@ function normalize(){
     if(!o)break;const k=abKey(sk,o);if(--S.abil[k]<=0)delete S.abil[k];if(S.freeAb===k&&!S.abil[k])S.freeAb='';
   }
   for(const k of Object.keys(S.abil)){const [sk,n]=k.split('|');if(n.startsWith('C:')&&!abCareer(sk).includes(n))delete S.abil[k]}
-  S.freeAb='';if(!S.arcAb)S.arcAb={};
+  S.freeAb='';if(!S.arcAb)S.arcAb={};for(const k of Object.keys(S.arcAb))if(!ARC_AB.find(a=>a[0]===k))delete S.arcAb[k];
   for(const k of Object.keys(S.skills))if(!allSkills().includes(k))delete S.skills[k];
   for(const k of Object.keys(S.abil)){const [sk,n]=k.split('|');if(!allSkills().includes(sk)||(!n.startsWith('C:')&&!(SKILLS[ATTRS.find(a=>SKILLS[a][sk])][sk]||[]).includes(n)))delete S.abil[k]}
 }
@@ -452,17 +453,84 @@ function stepSkills(){
   return h;
 }
 const ARC_AB=[
- ['Arc Lance',5,'Range 50 ft. 2d6 lightning damage. Ignores cover.',[2,6]],
- ['Magnetic Crush',3,'Range 20 ft. Stun one armored target for 1 round. Automatic, no roll to resist. Flagged for playtest.'],
- ['Plasma Stitch',3,'Touch. Heal 1d8 to an ally or yourself.',[1,8]],
- ['Purge Pulse',3,'20 ft pulse that clears toxins, spore clouds and Toxin effects.']];
-const arcCost=n=>S.species==='tendrix'?Math.max(1,n-1):n;
+ ['Arc Pulse',3,'Blast of Arc energy. 1d8 damage to one target in medium range.',[1,8],'Kinetic & Energy',2,0],
+ ['Force Shield',2,'Reaction: add +3 AP until the start of your next turn.',null,'Kinetic & Energy',2,0],
+ ['Arc Lance',5,'Focused beam. 2d6 damage, ignores 3 AP.',[2,6],'Kinetic & Energy',3,0],
+ ['Disruption Field',4,'30 ft aura for 2 turns. All electronic devices and Arc abilities cost +2 Arc to use.',null,'Kinetic & Energy',2,0],
+ ['Singularity Point',8,'Pull all targets in 20 ft toward you 10 ft. Pulled targets are Prone.',null,'Kinetic & Energy',2,0],
+ ['Venomous Strike',3,'Melee attack carries Arc-charged venom. On hit, target takes 1d4 poison damage per turn for 3 turns (Toughness Hard (15) each turn to end).',[1,4],'Bio & Toxin',2,0],
+ ['Toxic Dart',2,'Ranged 30 ft. On hit, target gains Toxin: -2 to all skill rolls under one chosen attribute until cured. No roll to resist.',null,'Bio & Toxin',2,0],
+ ['Toxic Bloom',6,'15 ft radius toxic cloud. Pick one attribute. Enemies inside take -2 to all skill rolls under it until the cloud clears or they leave. Toxin persists until cured.',null,'Bio & Toxin',2,0],
+ ['Toxic Retaliation',4,'Reaction when you take damage: toxin burst in 10 ft. Adjacent enemies gain Toxin (-2 to one attribute\'s skill rolls) until cured.',null,'Bio & Toxin',2,0],
+ ['Purge Pulse',3,'Remove one Poison or Toxin condition from yourself or one ally in touch range.',null,'Bio & Toxin',2,0],
+ ['Arc Sense',1,'Detect Arc signatures within 60 ft for 1 minute. Learn rough number and location of Arc sources.',null,'Mind & Perception',2,0],
+ ['Blink',4,'Teleport up to 30 ft to a visible location as a Move action.',null,'Mind & Perception',2,0],
+ ['Arc Veil',3,'Become difficult to detect. Perception checks against you are Hard (15) for 2 turns or until you attack.',null,'Mind & Perception',2,0],
+ ['Neural Spike',5,'Ranged 40 ft. Target is Stunned 1 turn. Memory Hard (18) negates.',null,'Mind & Perception',3,0],
+ ['Mirage',3,'Project a convincing visual illusion up to your size in a 20 ft range. Lasts until you lose concentration or end your turn.',null,'Mind & Perception',2,0],
+ ['Arc Mend',3,'Touch: heal 1d6 HP on yourself or an ally. Cannot exceed max HP.',[1,6],'Support & Utility',2,0],
+ ['Stabilize Field',4,'15 ft aura: allies inside this turn cannot be reduced below 1 HP. Lasts until your next turn.',null,'Support & Utility',2,0],
+ ['Arc Forge',4,'Shape metal or dense material into a simple object or structure. Lasts until destroyed or dismissed.',null,'Support & Utility',2,0],
+ ['Phase Wall',5,'Raise a 10 ft solid Arc barrier. 20 HP, blocks movement and line of sight. Lasts until destroyed.',null,'Support & Utility',2,0],
+ ['Energy Siphon',4,'Drain 3 Arc from a device or Arc user within 20 ft. Add half to your pool.',null,'Support & Utility',2,0],
+ ['Arc Cloak',5,'Become invisible for 2 turns or until you attack. Electronics cannot detect you.',null,'Support & Utility',2,0],
+ ['Gravity Spike',4,'Crush one target in place. Pinned for 1 turn. Toughness Hard (15) negates.',null,'Gravity & Matter',2,0],
+ ['Repulsion Burst',3,'Push all targets in 10 ft radius back 15 ft. Knocked Prone if they hit a surface.',null,'Gravity & Matter',2,0],
+ ['Pressure Crush',6,'One target in 30 ft takes 2d6 damage as atmospheric pressure spikes. Toughness Standard (13) for half.',[2,6],'Gravity & Matter',3,0],
+ ['Magnetic Grip',2,'Magnetically seize a metallic object or weapon within 30 ft. Disarm or pull it to you.',null,'Gravity & Matter',2,0],
+ ['Atmosphere Shift',5,'Alter the air in a 15 ft zone. Targets inside are Choked: -2 to all rolls. Lasts 2 turns.',null,'Gravity & Matter',2,0],
+ ['Chain Reaction',10,'Choose one target. On hit, the Arc jumps to up to 3 additional targets within 15 ft of each other: 2d6 to the first, 1d6 to each after.',[2,6],'Signature (once per Rest)',4,1],
+ ['Arc Overcharge',8,'Flood your body with Arc. For 2 turns: +2 to all rolls, +10 temp HP, immune to Stunned. After: Exhausted for 1 turn.',null,'Signature (once per Rest)',4,1],
+ ['Arc Ping',0,'Scan within 100 ft. Learn the number, rough location and Arc level of all targets. No cost, but telegraphs your position.',null,'Signature (once per Rest)',4,1],
+ ['Atomic Collapse',12,'One target within 40 ft takes 4d8 damage as atomic structure destabilizes. Toughness Extreme (23) for half.',[4,8],'Signature (once per Rest)',5,1],
+ ['Ignite',2,'Set one target or object on fire. 1d4 fire damage per turn for 3 turns. Toughness Standard (13) each turn to extinguish.',[1,4],'Fire',2,0],
+ ['Flame Burst',4,'15 ft cone of superheated air. 1d8 fire damage to all inside. Toughness Standard (13) for half.',[1,8],'Fire',2,0],
+ ['Arc Inferno',7,'20 ft radius firestorm. 2d6 fire damage. Ignites the area for 2 turns; anyone who enters takes 1d6.',[2,6],'Fire',3,0],
+ ['Frost Touch',2,'Melee touch. 1d4 cold damage. Target is Slowed until the end of their next turn.',[1,4],'Ice & Cold',2,0],
+ ['Ice Lance',3,'Ranged 50 ft. 1d6 cold damage. Target is Slowed until the end of their next turn.',[1,6],'Ice & Cold',2,0],
+ ['Flash Freeze',6,'One target in 30 ft is encased in ice: Pinned 2 turns, takes 1d4 cold damage per turn. Toughness Hard (15) to break free as an Action.',[1,4],'Ice & Cold',3,0],
+ ['Water Jet',3,'High-pressure stream. 1d6 damage, pushes target 10 ft back. Knocks Prone if they hit a surface.',[1,6],'Water',2,0],
+ ['Steam Vent',4,'Convert water or moisture to scalding steam in 10 ft radius. 1d6 damage. Targets inside are Blinded 1 turn. Toughness Standard (13) for half damage only.',[1,6],'Water',2,0],
+ ['Arc Bolt',2,'Ranged 50 ft. 1d6 lightning damage.',[1,6],'Lightning',2,0],
+ ['Chain Lightning',5,'Jumps between up to 3 targets within 15 ft of each other. 1d6 each.',[1,6],'Lightning',2,0],
+ ['EMP Pulse',4,'20 ft radius. Disables all electronics and Arc devices for 2 turns. No damage.',null,'Lightning',2,0],
+ ['Overload',6,'Target wearing electronic armor or using an Arc device takes 2d8 damage and is Stunned 1 turn.',[2,8],'Lightning',3,0],
+ ['Stone Wall',5,'Raise a 10 ft wide, 5 ft tall rock barrier. 30 HP. Lasts until destroyed.',null,'Earth & Gravity',2,0],
+ ['Ground Slam',4,'Crack the ground in a 15 ft cone. Targets are knocked Prone. Toughness Standard (13) negates.',null,'Earth & Gravity',2,0],
+ ['Debris Throw',3,'Hurl a chunk of rock or debris. 1d8 damage, 40 ft range.',[1,8],'Earth & Gravity',2,0],
+ ['Sinkhole',7,'Open a 10 ft pit. Targets inside fall Prone and are Pinned until they climb out.',null,'Earth & Gravity',4,0],
+ ['Concussive Wave',4,'20 ft cone of compressed air. 1d6 damage, all targets pushed back 10 ft.',[1,6],'Wind & Pressure',2,0],
+ ['Vacuum Bubble',5,'Seal one target in an airless pocket. Choked each turn until they escape. Memory Hard (18) to act while inside.',null,'Wind & Pressure',2,0],
+ ['Updraft',2,'Slow a fall or launch yourself or one ally 20 ft upward. No fall damage this turn.',null,'Wind & Pressure',2,0],
+ ['Sonic Boom',6,'Deafening blast in 15 ft. All targets Stunned 1 turn. Toughness Hard (15) negates.',null,'Wind & Pressure',3,0],
+ ['Plasma Cutter',3,'Melt through cover, doors or objects. Against targets: 1d6 damage, ignores 2 AP.',[1,6],'Plasma',2,0],
+ ['Plasma Burst',6,'10 ft radius superheated explosion. 2d8 damage, ignores all AP.',[2,8],'Plasma',3,0],
+ ['Light Absorption',3,'Plunge a 20 ft radius into darkness for 2 turns. All sight-based rolls are Hard (15).',null,'Void & Light',2,0],
+ ['Void Patch',5,'Create a 10 ft cold void zone. Targets inside take 1d4 cold damage per turn and are Slowed.',[1,4],'Void & Light',2,0],
+ ['Blinding Field',4,'One target is Blinded for 2 turns. Memory Hard (18) negates.',null,'Void & Light',2,0],
+ ['Sonic Pulse',3,'Ranged 30 ft. 1d6 damage, target loses their Free Action next turn.',[1,6],'Sound',2,0],
+ ['Silence Field',4,'15 ft radius. No sound in or out for 3 turns. Stealth rolls inside are automatic.',null,'Sound',2,0]];
+const ARC_CATS=[...new Set(ARC_AB.map(a=>a[4]))];
+const arcCost=n=>n===0?0:S.species==='tendrix'?Math.max(1,n-1):n;
+const arcMax=()=>final('memory');
+const arcKnown=()=>Object.keys(S.arcAb||{}).filter(k=>S.arcAb[k]).length;
+const arcOK=a=>final('knowledge')>=a[5];
+const ARC_OVER=[[5,'Catastrophic Collapse','Arc pool drops to 0. Take 3d6 damage. Unconscious 1d4 turns.'],[10,'Energy Hemorrhage','Take 2d6 damage. Arc pool halved (round down).'],[20,'Neural Burnout','-2 to all Arc rolls until Rested. Arc pool reduced by 5.'],[30,'System Overload','Stunned 1 turn. Electronics within 10 ft shut down for 1 turn.'],[40,'Arc Surge','Take 1d6 damage. Next Arc ability this scene costs double.'],[55,'Feedback','Lose your next action. Arc pool loses 3 points.'],[70,'Disruption','-1 to all rolls until end of encounter.'],[85,'Minor Surge','No damage. Lose 2 Arc points.'],[99,'Stable Overload','No effect. Arc holds.'],[100,'Resonance Burst','No damage. Regain 5 Arc. Next ability this scene costs 0 Arc.']];
 const hasArc=x=>!!(S.arcAb&&S.arcAb[x]);
 function stepArc(){
-  const sp=SPECIES[S.species]||{};
-  let h=`<h2>Arc</h2><p class="lede">Your Arc Pool is (Knowledge + Memory) × 3${sp.arc?` + ${sp.arc} species Arc`:''} = <b>${arcPool()}</b>. Add the Arc abilities you know. Each use spends its cost from the pool${S.species==='tendrix'?' (Arc Precision already applied)':''}. Going over the pool triggers Arc Overload.</p><div class="abilities">`;
-  for(const [x,n,fx] of ARC_AB)h+=`<div class="row" style="align-items:flex-start;flex-wrap:wrap"><span class="lab">${x} <span class="chip">${arcCost(n)} Arc</span></span><button class="pill" data-a="arcab" data-v="${x}" aria-pressed="${hasArc(x)}">${hasArc(x)?'Added':'Add'}</button><span class="fx" style="flex:1 1 100%">${fx}</span></div>`;
-  h+='</div>';
+  const sp=SPECIES[S.species]||{},kn=final('knowledge'),mx=arcMax(),have=arcKnown();
+  let h=`<h2>Arc</h2><p class="lede">Arc Pool = (Knowledge + Memory) × 3${sp.arc?` + ${sp.arc} species Arc`:''} = <b>${arcPool()}</b>.</p>
+  <p class="meter ${have>mx?'over':''}"><b>${have}</b> of <b>${mx}</b> Arc abilities known (limit = your Memory).</p>
+  <ul class="assump"><li>You need Knowledge 2+ to use Arc abilities (yours: ${kn}). Some abilities need Knowledge 3, 4 or 5.</li><li>${sp.arc?'Your species has natural Arc, so you can use abilities without Arc Cells.':'Your species has no natural Arc. You rely on Arc Cells (buy them on the Gear step).'}</li><li>Spending more than your pool triggers an Arc Overload roll.${S.species==='tendrix'?' Tendrix Arc Precision (−1 cost, minimum 1) is already applied.':''}</li></ul>`;
+  for(const cat of ARC_CATS){
+    const list=ARC_AB.filter(a=>a[4]===cat),n=list.filter(a=>hasArc(a[0])).length;
+    h+=`<details class="detail" data-w="arc${cat}" ${openD['arc'+cat]||n?'open':''} style="margin-bottom:6px"><summary><b>${cat}</b>${n?` · ${n} known`:''}</summary><div class="abilities">`;
+    for(const a of list){
+      const on=hasArc(a[0]),can=on||(arcOK(a)&&have<mx);
+      h+=`<div class="row" style="align-items:flex-start;flex-wrap:wrap"><span class="lab">${a[0]} <span class="chip">${a[1]===0?'Free':arcCost(a[1])+' Arc'}</span>${a[5]>2?` <span class="chip">Knowledge ${a[5]}</span>`:''}</span><button class="pill" data-a="arcab" data-v="${a[0]}" aria-pressed="${on}" ${can?'':'disabled'}>${on?'Known':'Learn'}</button><span class="fx" style="flex:1 1 100%">${a[2]}</span></div>`;
+    }
+    h+='</div></details>';
+  }
   return h;
 }
 const buyN=k=>S.buy[k]||0;
@@ -506,6 +574,7 @@ function warnings(){
   if(S.species==='human'&&floatLeft()>0)w.push(`${floatLeft()} Human floating points unplaced.`);
   if(baseSpent()<totalPts())w.push(`${totalPts()-baseSpent()} attribute points unspent.`);
   if(!S.career)w.push('No career chosen.');
+  {const bad=ARC_AB.filter(a=>hasArc(a[0])&&!arcOK(a));if(bad.length)w.push(`Arc abilities need more Knowledge: ${bad.map(a=>a[0]+' (K'+a[5]+')').join(', ')}.`);if(arcKnown()>arcMax())w.push(`You know ${arcKnown()} Arc abilities but your Memory allows ${arcMax()}.`)}
   if(S.career==='Hacker'&&!buyN('i|Hacking Rig'))w.push('Hackers need a Hacking Rig for their Bandwidth pool.');
   for(const a of ATTRS){if(left(a)>0)w.push(`${left(a)} ${AL[a]} rank${left(a)>1?'s':''} unspent.`)}
   if(digiSpent()>budget())w.push(`Over budget by ${digiSpent()-budget()} Digi.`);
@@ -532,7 +601,7 @@ function textSheet(){
     L.push(`- ${s} ${r}${ab.length?' ['+ab.join(', ')+']':''}`);
   }
   {const cc=CAREER_AB[S.career];if(cc){const own=cc.list.filter(l=>cc.sk.some(k=>abRank(k,'C:'+l[0])));if(own.length){L.push('',`${S.career.toUpperCase()} ABILITIES`);for(const l of own)L.push(`- ${l[0]}: ${l[2]}`)}}}
-  {const ar=ARC_AB.filter(a=>hasArc(a[0]));if(ar.length){L.push('','ARC ABILITIES');for(const a of ar)L.push(`- ${a[0]} (${arcCost(a[1])} Arc): ${a[2]}`)}}
+  {const ar=ARC_AB.filter(a=>hasArc(a[0]));if(ar.length){L.push('','ARC ABILITIES');for(const a of ar)L.push(`- ${a[0]} (${a[1]===0?'Free':arcCost(a[1])+' Arc'}): ${a[2]}`)}}
   if(S.freeAb){const [s,x]=S.freeAb.split('|');if(!abRank(s,x))L.push(`- Free ability: ${x} R1`)}
   if(!any&&!S.freeAb)L.push('- none');
   {const gl=[];for(const k in S.buy){const p=k.split('|'),q=S.buy[k];gl.push(p[0]==='w'?`${q}× ${p[1]} (${TIERS[+p[2]]})`:`${q}× ${p[1]}`)}
@@ -669,7 +738,18 @@ function takeDamage(n){
 
 function spendArc(n){
   const p=PL();
-  if(n>p.arc){const r=roll(100),had=p.arc;p.arc=0;setRes('Arc Overload',[`Spent ${n} with only ${had} left. Roll the Arc Overload Table: d100 = ${r}. (Table not written yet.)`],'bad')}
+  if(n>p.arc){
+    const had=p.arc,r=roll(100),e=ARC_OVER.find(x=>r<=x[0]),L=[`Spent ${n} with only ${had} left. Pool is empty.`];p.arc=0;
+    const dmg=(k,s)=>{let t=0;for(let i=0;i<k;i++)t+=roll(s);p.hp=Math.max(0,p.hp-t);return t};
+    let x='';
+    if(e[1]==='Catastrophic Collapse')x=` Took ${dmg(3,6)} damage (3d6).`;
+    else if(e[1]==='Energy Hemorrhage'){x=` Took ${dmg(2,6)} damage (2d6). Arc pool halved: take it off your max by hand.`}
+    else if(e[1]==='Arc Surge')x=` Took ${dmg(1,6)} damage (1d6).`;
+    else if(e[1]==='Resonance Burst'){p.arc=Math.min(arcPool(),5);x=' Regained 5 Arc.'}
+    L.push(`Arc Overload d100 = ${r===100?'00':r}: ${e[1]}. ${e[2]}${x}`);
+    if(e[1]==='Neural Burnout'||e[1]==='Energy Hemorrhage')L.push('Pool reductions are not tracked automatically.');
+    setRes('Arc Overload',L,'bad');
+  }
   else{p.arc-=n;setRes(`Spent ${n} Arc`,[`${p.arc} left in pool.`],'neutral')}
 }
 const PMAX={hp:p=>p.hpMax,ap:p=>p.apMax,arc:()=>arcPool(),favor:()=>5,sil:()=>5,still:()=>9,enemyEv:()=>15,ecn:()=>19,mod:()=>5,dmg:()=>99,spend:()=>30,hpMax:()=>200,apMax:()=>60};
@@ -695,12 +775,14 @@ function playAct(a,t){
     case 'pdmg':takeDamage(p.dmg);break;
     case 'pheal':{
       if(v==='breather'){const r=roll(6);p.hp=Math.min(p.hpMax,p.hp+r);setRes('Breather (5–10 min)',[`Recovered 1d6 = ${r} HP. Cannot be in danger. Once per hour.`],'good')}
-      if(v==='rest'){const h=Math.ceil(p.hpMax/2);p.hp=Math.min(p.hpMax,p.hp+h);p.arc=Math.min(arcPool(),p.arc+1);p.uny=false;setRes('Rest (1–2 hours)',[`Recovered half max HP (${h}). +1 natural Arc (test value). Regain 1 use per ability.`],'good')}
-      if(v==='down'){p.hp=p.hpMax;p.ap=p.apMax;p.arc=Math.min(arcPool(),p.arc+8);p.uny=false;p.rapid=false;setRes('Downtime (8+ hours)',['Full HP, armor restored, +8 natural Arc (test value), all resources reloaded.'],'good')}
+      if(v==='rest'){p.sig={};const h=Math.ceil(p.hpMax/2);p.hp=Math.min(p.hpMax,p.hp+h);p.arc=Math.min(arcPool(),p.arc+1);p.uny=false;setRes('Rest (1–2 hours)',[`Recovered half max HP (${h}). +1 natural Arc (test value). Regain 1 use per ability.`],'good')}
+      if(v==='down'){p.sig={};p.hp=p.hpMax;p.ap=p.apMax;p.arc=Math.min(arcPool(),p.arc+8);p.uny=false;p.rapid=false;setRes('Downtime (8+ hours)',['Full HP, armor restored, +8 natural Arc (test value), all resources reloaded.'],'good')}
       if(v==='hour'){p.arc=Math.min(arcPool(),p.arc+1);setRes('One hour passes',['+1 natural Arc.'],'neutral')}
       break}
     case 'parc':spendArc(p.spend);break;
-    case 'pcast':{const a=ARC_AB.find(x=>x[0]===v);if(!a)break;const n=arcCost(a[1]);spendArc(n);
+    case 'pcast':{const a=ARC_AB.find(x=>x[0]===v);if(!a)break;if(final('knowledge')<2){setRes('Cannot cast',['Arc abilities need Knowledge 2+.'],'bad');break}
+      if(a[6]){p.sig=p.sig||{};if(p.sig[v])break;p.sig[v]=true}
+      const n=arcCost(a[1]);spendArc(n);
       if(!p.res)break;p.res.h=(p.res.h.startsWith('Arc Overload')?'Arc Overload: ':'')+v;
       p.res.lines.unshift(`${v}: ${a[2]}`);
       if(a[3]){let t=0;const rs=[];for(let i=0;i<a[3][0];i++){const r=roll(a[3][1]);rs.push(r);t+=r}p.res.lines.push(`${a[3][0]}d${a[3][1]}: [${rs.join(', ')}] = ${t}`)}
@@ -740,7 +822,7 @@ function playView(){
   }
   h+=`</div><p class="lede" style="font-size:13px;margin-top:6px">Greyed skills are untrained (+0).</p>
   ${kab.length?`<h3>Abilities</h3><div class="abilities">${kab.map(a=>`<div class="row" style="align-items:flex-start"><span class="lab">${a.x} <span class="chip">R${a.r}</span></span><span class="fx" style="flex:1">${a.fx}</span></div>`).join('')}</div>`:''}
-${ARC_AB.some(a=>hasArc(a[0]))?`<h3>Arc abilities</h3><div class="actions" style="margin-top:0">${ARC_AB.filter(a=>hasArc(a[0])).map(a=>`<button class="btn" data-a="pcast" data-v="${a[0]}">${a[0]} · ${arcCost(a[1])} Arc</button>`).join('')}</div>`:''}
+${ARC_AB.some(a=>hasArc(a[0]))?`<h3>Arc abilities</h3><div class="actions" style="margin-top:0">${ARC_AB.filter(a=>hasArc(a[0])).map(a=>`<button class="btn" data-a="pcast" data-v="${a[0]}" ${a[6]&&p.sig&&p.sig[a[0]]?'disabled':''}>${a[0]} · ${a[1]===0?'Free':arcCost(a[1])+' Arc'}${a[6]?' (1/Rest)':''}</button>`).join('')}</div>`:''}
   <h3>Attack</h3>
   <div class="pillrow">${WEAPONS.map((x,i)=>`<button class="pill" data-a="pset" data-k="wi" data-v="${i}" aria-pressed="${p.wi===i}">${x.n} · ${x.dice[0]}d${x.dice[1]}${x.plus?'+'+x.plus:''}</button>`).join('')}</div>
   ${S.buy&&Object.keys(S.buy).length?'':'<p class="lede" style="font-size:13px">No weapons bought. Add some on the Equipment step.</p>'}
@@ -811,7 +893,7 @@ document.addEventListener('click',e=>{
     case 'buy':{const n=Math.max(0,(S.buy[v]||0)+d);if(n)S.buy[v]=Math.min(n,9);else delete S.buy[v];break}
     case 'armor':S.armor=S.armor===v?'':v;break;
     case 'xp':{const x=XP();x[v]=Math.max(0,Math.min(v==='attr'?20:40,x[v]+d));break}
-    case 'arcab':{if(!S.arcAb)S.arcAb={};if(S.arcAb[v])delete S.arcAb[v];else S.arcAb[v]=true;break}
+    case 'arcab':{if(!S.arcAb)S.arcAb={};if(S.arcAb[v])delete S.arcAb[v];else{const a=ARC_AB.find(x=>x[0]===v);if(a&&arcOK(a)&&arcKnown()<arcMax())S.arcAb[v]=true}break}
     case 'abc':{const cc=CAREER_AB[S.career];if(!cc)break;const it=cc.list.find(l=>l[0]===v);if(!it)break;
       if(d<0){for(const k of cc.sk)delete S.abil[abKey(k,'C:'+v)]}
       else if(!cc.sk.some(k=>abRank(k,'C:'+v))){const k=cc.sk.filter(k=>skillRank(k)>0&&canSpend(k,it[1])).sort((a,b)=>abLeft(b)-abLeft(a))[0];if(k)S.abil[abKey(k,'C:'+v)]=1}
