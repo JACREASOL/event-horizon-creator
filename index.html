@@ -160,14 +160,14 @@ const SKILLS={
   knowledge:{'Engineering':[],'Hacking':[],'Medical':[],'Investigation':[],'Arc Use':[]},
   memory:{'Perception':['Eavesdropping','Combat Awareness'],'Lore':[],'Navigation':[],'Tactics':[],'Survival':[]},
   charm:{'Persuasion':[],'Deception':[],'Negotiation':['Read the Room'],'Performance':[],'Leadership':['Battlefield Discipline']},
-  toughness:{'Endurance':['Battle Hardened','Second Wind','Iron Will','Thick Skin'],'Resistance':[],'Composure':[]}
+  toughness:{'Endurance':['Battle Hardened','Second Wind','Iron Will','Thick Skin','Iron Lungs','Marathon','Unbreakable','Last Breath'],'Resistance':['Poison Resistant','Environmental Seal','Pain Tolerance','Toxin Immunity'],'Composure':[]}
 };
 const CHARMSK=['Persuasion','Deception','Negotiation','Performance','Leadership'];
 const SNEAK={1:'+1 to Sneak checks. Move quietly.',2:'+1. Move at a faster pace while staying stealthy.',3:'+2 to Sneak checks.',4:'+2. Gear no longer penalizes sneaking.',5:'+3 to Sneak checks.'};
 /* cost per rank, max rank, prerequisites. Costs come from the abilities chat; ones marked EST are placeholders from the old Soldier list. */
-const COST={'Brutal Strike':1,'Relentless':1,'Juggernaut':2,'Killing Blow':5,'Rampage':5,'Melee Weapon Familiarity':5,'Unstoppable':2,'Weapon Familiarity':5,'Weapon Mastery':5,'Suppressing Fire':2,'Apex Predator':5,'Patient':1,'Weak Point':1,'Long Shot':1,'Controlled Breathing':2,'Combat Awareness':5,'Battlefield Discipline':2,'Battle Hardened':1,'Second Wind':2,'Iron Will':3,'Thick Skin':1};
+const COST={'Brutal Strike':1,'Relentless':1,'Juggernaut':2,'Killing Blow':5,'Rampage':5,'Melee Weapon Familiarity':5,'Unstoppable':2,'Weapon Familiarity':5,'Weapon Mastery':5,'Suppressing Fire':2,'Apex Predator':5,'Patient':5,'Weak Point':5,'Long Shot':1,'Controlled Breathing':1,'Combat Awareness':5,'Battlefield Discipline':2,'Battle Hardened':1,'Second Wind':2,'Iron Will':5,'Thick Skin':1,'Iron Lungs':1,'Marathon':2,'Unbreakable':3,'Last Breath':5,'Poison Resistant':1,'Environmental Seal':2,'Pain Tolerance':2,'Toxin Immunity':5};
 const EST=['Brutal Strike','Patient','Weak Point','Long Shot','Controlled Breathing','Battle Hardened','Second Wind','Iron Will','Thick Skin'];
-const MAXR={'Relentless':1,'Juggernaut':1,'Killing Blow':1,'Rampage':1,'Melee Weapon Familiarity':1,'Unstoppable':1,'Weapon Familiarity':1,'Weapon Mastery':1,'Suppressing Fire':1,'Apex Predator':1,'Patient':1,'Weak Point':1,'Long Shot':1,'Controlled Breathing':1,'Combat Awareness':1,'Battlefield Discipline':1,'Second Wind':1,'Iron Will':1,'Thick Skin':3};
+const MAXR={'Relentless':1,'Juggernaut':1,'Killing Blow':1,'Rampage':1,'Melee Weapon Familiarity':1,'Unstoppable':1,'Weapon Familiarity':1,'Weapon Mastery':1,'Suppressing Fire':1,'Apex Predator':1,'Patient':1,'Weak Point':1,'Long Shot':1,'Controlled Breathing':1,'Combat Awareness':1,'Battlefield Discipline':1,'Second Wind':1,'Iron Will':1,'Thick Skin':3,'Iron Lungs':1,'Marathon':1,'Unbreakable':1,'Last Breath':1,'Poison Resistant':1,'Environmental Seal':1,'Pain Tolerance':1,'Toxin Immunity':1};
 const REQ={'Weapon Mastery':['Firearms','Weapon Familiarity',1],'Iron Will':['Endurance','Battle Hardened',3]};
 /* Career abilities (from the v0.4 draft). [name, point cost, effect]. Cost = old R number (assumed). Paid from the career's parent skills. */
 const CAREER_AB={
@@ -189,35 +189,45 @@ const CAREER_AB={
   ['Last Stand',5,'At 10 HP or below: +2 to attack rolls, and you cannot be Slowed or Pinned until the start of your next turn.'],
   ['Squad Command',5,'As an action, give two allies a free Move. They also make one free attack each if already in range.']]},
  'Medic':{label:'Medical',sk:['Medical'],list:[
-  ['Triage',1,'Stabilize a 0 HP ally as a Move action (normally a full Action).'],
-  ['Combat Stim',1,'Inject an ally: +2 Speed and +1 to rolls for 2 turns. Crash: -1 to rolls for 1 turn after.'],
-  ['Field Surgery',2,'Spend 2 actions and a Medkit to restore 2d6 HP to an ally. Once per Rest per patient.'],
-  ['Toxin Purge',2,'Clear one Poisoned or Toxic condition from a target. Requires a Medkit.'],
-  ['Advanced Triage',3,'Stabilize any number of 0 HP allies in your line of sight as one action.']]},
- 'Bounty Hunter':{label:'Firearms / Stealth / Perception',sk:['Firearms','Stealth','Perception'],list:[
-  ['Mark',1,'Designate a target as your Mark: +1 to all rolls against them until captured or dead.'],
-  ['Tracker',1,'Follow a target\'s trail through any environment. Roll Memory + Perception; difficulty from time elapsed and conditions.'],
-  ['Capture Specialist',2,'Non-lethal takedown on a Prone or Slowed target without a roll. They are Restrained.'],
-  ['Bounty Intel',2,'Once per session, learn a target\'s current location, known aliases, or a weakness.'],
-  ['Relentless',3,'Your Mark cannot benefit from Stealth or Invisibility against you while you pursue them.']]},
+  ['Field Medic',2,'Action: heal 1d8 by touch. Once per ally per Breather.'],
+  ['Triage',2,'When an ally drops to 0 HP, add +10 to their injury table roll.'],
+  ['Antitoxin',2,'Medical check ends one Poison. Against a Toxin, remove one attribute penalty.'],
+  ['Combat Stims',3,'Once per combat, an ally gets +1 attack and +1 Toughness for 3 rounds, then is Weakened.'],
+  ['Surgeon',4,'During Downtime, remove one lingering injury.']]},
+ 'Bounty Hunter':{label:'Investigation / Perception / Survival / Firearms / Melee Combat / Athletics',sk:['Investigation','Perception','Survival','Firearms','Melee Combat','Athletics'],list:[
+  ['Mark the Target',2,'Action: name one enemy as your mark. +1 to all attacks against them. One at a time. Ends when they drop or the scene ends. (Investigation)'],
+  ['Tracker',2,'+2 to follow a trail. Once per scene, learn which way a target went and how long ago. (Survival)'],
+  ['Snare Shot',3,'Fire a restraint round. On hit, the target is Slowed until the end of their next turn. (Firearms)'],
+  ["Take 'Em Alive",3,'Melee hits may deal non-lethal damage. At 0 HP, the target is subdued with no injury table roll. (Melee Combat)'],
+  ['Binding Cuffs',1,'Restrain a grappled or subdued target as a free action. They need a Standard check to break free. (Athletics)']]},
  'Hacker':{label:'Hacking',sk:['Hacking'],note:'Uses a Bandwidth pool (never HP). Needs a Hacking Rig (200 Digi).',list:[
   ['Ghost Protocol',1,'Mask your signal. While active, hacks cannot be traced to your location. Costs 1 Bandwidth.'],
   ['System Probe',1,'Scan a connected network or device. Learn its systems and security rating before attacking.'],
   ['Lockpick',2,'Crack a door, terminal, or lock without a Ghost Spike. Roll Hacking vs. security rating.'],
   ['Bandwidth Spike',2,'Spend 3 Bandwidth for +3 to your next Hacking roll. Can be used reactively.'],
   ['System Crash',3,'Shut down a drone, turret, security door, or vehicle for 2 turns. Costs 4 Bandwidth.']]},
- 'Smuggler':{label:'Charm / Stealth / Piloting',sk:CHARMSK.concat(['Stealth','Piloting']),list:[
-  ['Fast Talk',1,'Roll Charm vs. their Memory. On success a guard or official waves you through without searching you or your cargo.'],
-  ['Hidden Compartment',1,'Your ship or vehicle has a concealed compartment. Searching it needs a Hard (18) Perception check. Passive.'],
-  ['Black Market Contact',1,'Once per session, source restricted gear or information. The GM sets availability and price.'],
-  ['Slippery',2,'+2 to all rolls to evade, hide, or outmaneuver a pursuer for the duration of a chase.'],
-  ['Forged Papers',2,'Produce false ID, manifests, or permits. Materials cost TBD. Inspectors roll Memory at Hard (18) to detect it.'],
-  ['Ghost Run',3,'Once per session, your ship goes dark: no transponder, no emissions, undetectable by sensors for 10 minutes. Cannot fire weapons.']]}
+ 'Smuggler':{label:'Sleight of Hand / Deception / Piloting / Charm',sk:CHARMSK.concat(['Sleight of Hand','Piloting']),list:[
+  ['Hidden Compartment',2,'Conceal an item up to pistol size. Searchers need a Hard (18) check to find it. (Sleight of Hand)'],
+  ['Forged Papers',2,'Produce a permit or ID in a Breather. Opponents roll Memory Hard (18) to detect the forgery. (Deception)'],
+  ['Fast Talk',2,'Talk past a guard or suspicious NPC. Roll Charm vs. Memory. On success, no search.'],
+  ['Black Market Contact',2,'Once per session, source restricted gear or information at Black Market tier (price set by GM).'],
+  ['Slippery',3,'During a chase, +2 to all rolls to evade, hide, or outmaneuver the pursuer. (Piloting)'],
+  ['Ghost Run',5,'Once per session, your ship goes dark: no transponder, no emissions, undetectable for 10 min. Cannot fire while active. (Piloting)']]}
 };
 const careerCost=n=>{const c=CAREER_AB[S.career];const it=c&&c.list.find(l=>l[0]===n);return it?it[1]:1};
 const unitCost=x=>x.startsWith('C:')?careerCost(x.slice(2)):(COST[x]||ABILITY_RANK_COST);
+const SKREQ={'Combat Awareness':5,'Toxin Immunity':5};
+const skOk=(s,x)=>!SKREQ[x]||skillRank(s)>=SKREQ[x];
 const reqOk=x=>{const q=REQ[x];return !q||abRank(q[0],q[1])>=q[2]};
 const AB={
+  'Iron Lungs':()=>'Ignore the first level of Exhaustion each encounter.',
+  'Marathon':()=>'Sprint without spending your Action. It costs your Move action instead.',
+  'Unbreakable':()=>'Once per session, automatically pass one Toughness or Endurance check.',
+  'Last Breath':()=>'When you would gain Exhausted, roll Endurance Hard (15) to ignore it.',
+  'Poison Resistant':()=>'Poison ticks deal 1 less damage (minimum 1).',
+  'Environmental Seal':()=>'Ignore environmental hazards (vacuum, extreme heat or cold) for 1 scene. Requires sealed armor.',
+  'Pain Tolerance':()=>'Ignore the -1 roll penalty from Deep Wound and similar minor injuries.',
+  'Toxin Immunity':()=>'Immune to the Toxin condition. Needs Resistance rank 5.',
   'Brutal Strike':r=>`Once per turn, a melee hit also applies Weakened. ${r} use${r>1?'s':''} per combat.`,
   'Relentless':()=>'After dropping an enemy to 0 HP, move up to 10 ft as a free action.',
   'Juggernaut':()=>'When you Sprint, move through enemies; each takes 1d6 damage.',
@@ -362,7 +372,7 @@ function normalize(){
    for(const k of Object.keys(S.spAb))if(!S.spAb[k]||!names.includes(k))delete S.spAb[k];
    for(const k of Object.keys(S.spAb).reverse()){if(spUsed()<=spPts())break;delete S.spAb[k]}}for(const k of Object.keys(S.arcAb))if(!ARC_AB.find(a=>a[0]===k))delete S.arcAb[k];
   for(const k of Object.keys(S.skills))if(!allSkills().includes(k))delete S.skills[k];
-  for(const k of Object.keys(S.abil)){const [sk,n]=k.split('|');if(!allSkills().includes(sk)||(!n.startsWith('C:')&&!(SKILLS[ATTRS.find(a=>SKILLS[a][sk])][sk]||[]).includes(n)))delete S.abil[k]}
+  for(const k of Object.keys(S.abil)){const [sk,n]=k.split('|');if(!allSkills().includes(sk)||(n.startsWith('C:')&&!((CAREER_AB[S.career]||{list:[]}).list.some(l=>l[0]===n.slice(2))))||(!n.startsWith('C:')&&!(SKILLS[ATTRS.find(a=>SKILLS[a][sk])][sk]||[]).includes(n)))delete S.abil[k]}
 }
 const arcPool=()=>(final('knowledge')+final('memory'))*3+((SPECIES[S.species]||{}).arc||0);
 const bonusChips=()=>{
@@ -440,7 +450,7 @@ function stepSkills(){
         for(const x of showAbs){
           const k=abKey(s,x),ar=abRank(s,x),free=S.freeAb===k;
           const maxR=Math.min(MAXR[x]||5,XP().abil>0?5:Math.max(r,free?1:0));
-          const uc=unitCost(x),step=ar<maxR&&reqOk(x)&&(canSpend(s,uc)||(free&&ar===0));
+          const uc=unitCost(x),step=ar<maxR&&reqOk(x)&&skOk(s,x)&&(canSpend(s,uc)||(free&&ar===0));
           h+=`<div class="row"><span class="lab">${x} <span class="chip">${uc}${(MAXR[x]||5)>1?'/rank':' pt'}${EST.includes(x)?' est.':''}</span>${free?' <span class="chip">free R1</span>':''}</span><span class="step"><button data-a="abil" data-v="${k}" data-d="-1" ${ar<=0?'disabled':''}>−</button><output>${ar}</output><button data-a="abil" data-v="${k}" data-d="1" ${step?'':'disabled'}>+</button></span><span class="fx">${ar?AB[x](ar):'Not learned.'}</span></div>`;
         }
         h+='</div>';
