@@ -149,6 +149,10 @@ const AL={muscles:'Muscles',accuracy:'Accuracy',knowledge:'Knowledge',memory:'Me
 const ADESC={muscles:'Physical power and melee force',accuracy:'Precision and aim',knowledge:'Education, tech, Arc theory',memory:'Wisdom, perception, recall',charm:'Social skill and presence',toughness:'Endurance and resilience'};
 const POINTS=10, ATTR_CAP=5, ABILITY_RANK_COST=1;
 const XP=()=>S.xp||(S.xp={attr:0,abil:0});
+const spPts=()=>2+(XP().sp||0);
+const spUsed=()=>Object.keys(S.spAb||{}).filter(k=>S.spAb[k]).length;
+const spLeft=()=>spPts()-spUsed();
+const hasSp=n=>!!(S.spAb&&S.spAb[n]);
 const totalPts=()=>POINTS+XP().attr, attrCap=()=>XP().attr>0?10:ATTR_CAP; /* ability costs are placeholders until the rulebook defines them */
 const SKILLS={
   muscles:{'Melee Combat':['Grapple','Disarm','Brutal Strike','Relentless','Juggernaut','Killing Blow','Rampage','Melee Weapon Familiarity'],'Athletics':['Heavy Lifting','Acrobatics','Unstoppable'],'Intimidation':[],'Stamina':[]},
@@ -305,7 +309,7 @@ const TIER={1:'Low',2:'Moderate',3:'Higher',4:'Extreme'};
 const STEPS=['Species','Attributes','Career','Skills','Arc','Gear','Sheet'];
 
 const blank=()=>({mode:'build',pcode:'',pid:'',gm:false,inParty:false,pl:{init:false,hp:0,hpMax:0,ap:12,apMax:12,arc:0,favor:0,sil:1,still:0,round:1,uny:false,rapid:false,wi:0,band:1,cover:0,tcover:0,aim:false,pack:false,enemyEv:5,ecn:0,dn:13,mod:0,dmg:3,spend:1,res:null,last:null,log:[]},step:0,name:'',species:'',vPrimary:'muscles',vExtra:'charm',fTrait:'regen',hFloat:{},
-  base:Object.fromEntries(ATTRS.map(a=>[a,0])),career:'',skills:{},abil:{},xp:{attr:0,abil:0},freeAb:'',arcAb:{},buy:{},armor:'',gear:'',notes:''});
+  base:Object.fromEntries(ATTRS.map(a=>[a,0])),career:'',skills:{},abil:{},xp:{attr:0,abil:0},freeAb:'',arcAb:{},spAb:{},buy:{},armor:'',gear:'',notes:''});
 let S=blank();
 try{const raw=localStorage.getItem('eh-char');if(raw){S=Object.assign(blank(),JSON.parse(raw))}}catch(e){}
 function save(){try{localStorage.setItem('eh-char',JSON.stringify(S))}catch(e){}}
@@ -353,7 +357,10 @@ function normalize(){
     if(!o)break;const k=abKey(sk,o);if(--S.abil[k]<=0)delete S.abil[k];if(S.freeAb===k&&!S.abil[k])S.freeAb='';
   }
   for(const k of Object.keys(S.abil)){const [sk,n]=k.split('|');if(n.startsWith('C:')&&!abCareer(sk).includes(n))delete S.abil[k]}
-  S.freeAb='';if(!S.arcAb)S.arcAb={};for(const k of Object.keys(S.arcAb))if(!ARC_AB.find(a=>a[0]===k))delete S.arcAb[k];
+  S.freeAb='';if(!S.arcAb)S.arcAb={};
+  {if(!S.spAb)S.spAb={};const sp=SPECIES[S.species],names=sp?sp.traits.map(t=>t[0]):[];
+   for(const k of Object.keys(S.spAb))if(!S.spAb[k]||!names.includes(k))delete S.spAb[k];
+   for(const k of Object.keys(S.spAb).reverse()){if(spUsed()<=spPts())break;delete S.spAb[k]}}for(const k of Object.keys(S.arcAb))if(!ARC_AB.find(a=>a[0]===k))delete S.arcAb[k];
   for(const k of Object.keys(S.skills))if(!allSkills().includes(k))delete S.skills[k];
   for(const k of Object.keys(S.abil)){const [sk,n]=k.split('|');if(!allSkills().includes(sk)||(!n.startsWith('C:')&&!(SKILLS[ATTRS.find(a=>SKILLS[a][sk])][sk]||[]).includes(n)))delete S.abil[k]}
 }
@@ -378,7 +385,9 @@ function stepSpecies(){
   const sp=SPECIES[S.species];
   if(sp){
     h+=`<div class="detail"><img class="spbig" src="species/${S.species}.jpg" alt="${sp.name}" onerror="this.remove()"><h3>${sp.name} abilities</h3><p class="meter">Speed ${sp.spd*10} ft · Silhouette ${sp.sil}${sp.swim?` · Swim ${sp.swim*10} ft`:''} · Evasion ${Math.floor(sp.spd)-sp.sil}</p>`;
-    for(const t of sp.traits)h+=`<div class="trait"><b>${t[0]}</b><p>${t[1]}</p></div>`;
+    h+=`<p class="meter ${spLeft()<0?'over':''}"><b>${spLeft()}</b> of ${spPts()} species points left. Each ability costs 1.</p>`;
+    for(const t of sp.traits){const on=hasSp(t[0]);h+=`<div class="trait"><div class="row" style="border:0;padding:0"><b style="flex:1">${t[0]}</b><button class="pill" data-a="spab" data-v="${esc(t[0])}" aria-pressed="${on}" ${on||spLeft()>0?'':'disabled'}>${on?'Chosen':'Choose (1 pt)'}</button></div><p>${t[1]}</p></div>`}
+    h+=`<div class="row"><span class="lab">Bonus species points<small>GM-awarded. Each unlocks another ability.</small></span><span class="step"><button data-a="xp" data-v="sp" data-d="-1" ${(XP().sp||0)<=0?'disabled':''}>−</button><output>${XP().sp||0}</output><button data-a="xp" data-v="sp" data-d="1" ${(XP().sp||0)>=5?'disabled':''}>+</button></span></div>`;
     if(sp.float){
       h+=`<h3>Place your ${sp.float} floating points <span class="meter">(${floatLeft()} left)</span></h3>`;
       for(const a of ATTRS)h+=`<div class="row"><span class="lab">${AL[a]}</span><span class="step"><button data-a="hf" data-v="${a}" data-d="-1" ${!(S.hFloat[a]>0)?'disabled':''}>−</button><output>${S.hFloat[a]||0}</output><button data-a="hf" data-v="${a}" data-d="1" ${floatLeft()<=0?'disabled':''}>+</button></span></div>`;
@@ -511,7 +520,7 @@ const ARC_AB=[
  ['Sonic Pulse',3,'Ranged 30 ft. 1d6 damage, target loses their Free Action next turn.',[1,6],'Sound',2,0],
  ['Silence Field',4,'15 ft radius. No sound in or out for 3 turns. Stealth rolls inside are automatic.',null,'Sound',2,0]];
 const ARC_CATS=[...new Set(ARC_AB.map(a=>a[4]))];
-const arcCost=n=>n===0?0:S.species==='tendrix'?Math.max(1,n-1):n;
+const arcCost=n=>n===0?0:hasSp('Arc Precision')?Math.max(1,n-1):n;
 const arcMax=()=>final('memory');
 const arcKnown=()=>Object.keys(S.arcAb||{}).filter(k=>S.arcAb[k]).length;
 const arcOK=a=>final('knowledge')>=a[5];
@@ -521,7 +530,7 @@ function stepArc(){
   const sp=SPECIES[S.species]||{},kn=final('knowledge'),mx=arcMax(),have=arcKnown();
   let h=`<h2>Arc</h2><p class="lede">Arc Pool = (Knowledge + Memory) × 3${sp.arc?` + ${sp.arc} species Arc`:''} = <b>${arcPool()}</b>.</p>
   <p class="meter ${have>mx?'over':''}"><b>${have}</b> of <b>${mx}</b> Arc abilities known (limit = your Memory).</p>
-  <ul class="assump"><li>You need Knowledge 2+ to use Arc abilities (yours: ${kn}). Some abilities need Knowledge 3, 4 or 5.</li><li>${sp.arc?'Your species has natural Arc, so you can use abilities without Arc Cells.':'Your species has no natural Arc. You rely on Arc Cells (buy them on the Gear step).'}</li><li>Spending more than your pool triggers an Arc Overload roll.${S.species==='tendrix'?' Tendrix Arc Precision (−1 cost, minimum 1) is already applied.':''}</li></ul>`;
+  <ul class="assump"><li>You need Knowledge 2+ to use Arc abilities (yours: ${kn}). Some abilities need Knowledge 3, 4 or 5.</li><li>${sp.arc?'Your species has natural Arc, so you can use abilities without Arc Cells.':'Your species has no natural Arc. You rely on Arc Cells (buy them on the Gear step).'}</li><li>Spending more than your pool triggers an Arc Overload roll.${hasSp('Arc Precision')?' Arc Precision (−1 cost, minimum 1) is already applied.':''}</li></ul>`;
   for(const cat of ARC_CATS){
     const list=ARC_AB.filter(a=>a[4]===cat),n=list.filter(a=>hasArc(a[0])).length;
     h+=`<details class="detail" data-w="arc${cat}" ${openD['arc'+cat]||n?'open':''} style="margin-bottom:6px"><summary><b>${cat}</b>${n?` · ${n} known`:''}</summary><div class="abilities">`;
@@ -571,6 +580,7 @@ function warnings(){
   const w=[];
   if(!S.name.trim())w.push('Your character has no name.');
   if(!S.species)w.push('No species chosen.');
+  if(S.species&&spLeft()>0)w.push(`${spLeft()} species point${spLeft()>1?'s':''} unspent. Pick your species abilities.`);
   if(S.species==='human'&&floatLeft()>0)w.push(`${floatLeft()} Human floating points unplaced.`);
   if(baseSpent()<totalPts())w.push(`${totalPts()-baseSpent()} attribute points unspent.`);
   if(!S.career)w.push('No career chosen.');
@@ -590,7 +600,8 @@ function textSheet(){
   L.push('');
   if(sp){
     L.push('SPECIES ABILITIES');
-    for(const t of sp.traits)L.push(`- ${t[0]}: ${t[1]}`);
+    for(const t of sp.traits)if(hasSp(t[0]))L.push(`- ${t[0]}: ${t[1]}`);
+    if(spLeft()>0)L.push(`(${spLeft()} species point${spLeft()>1?'s':''} unspent)`);
     L.push('');
   }
   L.push('SKILLS');
@@ -730,7 +741,7 @@ function takeDamage(n){
   }
   if(n>0){p.hp-=n;m+=` ${n} damage to HP.`}
   if(p.hp<=0){
-    if(S.species==='korvath'&&!p.uny){p.uny=true;p.hp=1;m+=' Unyielding: you stay up at 1 HP.'}
+    if(hasSp('Unyielding')&&!p.uny){p.uny=true;p.hp=1;m+=' Unyielding: you stay up at 1 HP.'}
     else{p.hp=5;const r=injuryRoll();if(r.includes('= 00'))p.favor=Math.min(5,p.favor+1);m+=` Down. Regain 5 HP. ${r}`}
   }
   setRes(`Took ${p.dmg} damage`,[m.trim()],p.hp<=1?'bad':'neutral');
@@ -838,8 +849,8 @@ ${ARC_AB.some(a=>hasArc(a[0]))?`<h3>Arc abilities</h3><div class="actions" style
   <div class="actions"><button class="btn" data-a="pheal" data-v="breather">Breather (1d6)</button><button class="btn" data-a="pheal" data-v="rest">Rest (half HP)</button><button class="btn" data-a="pheal" data-v="down">Downtime (full)</button><button class="btn" data-a="pheal" data-v="hour">+1 hour (Arc)</button></div>
   <div class="row"><span class="lab">Spend Arc<small>Past your pool triggers Overload</small></span>${stp('spend',p.spend,1,30)}<button class="btn" data-a="parc">Spend</button></div>
   <h3>Rounds</h3>
-  <div class="actions"><button class="btn" data-a="pround" data-v="moved">Next round · I moved</button><button class="btn" data-a="pround" data-v="still">Next round · stood still</button><button class="btn" data-a="pnew">New encounter</button>${S.species==='floran'?`<button class="btn" data-a="prapid" ${p.rapid?'disabled':''}>Natural Regeneration (1d4)</button>`:''}</div>
-  ${S.species==='korvath'?`<p class="meter">Unyielding: ${p.uny?'used this encounter':'ready'}</p>`:''}
+  <div class="actions"><button class="btn" data-a="pround" data-v="moved">Next round · I moved</button><button class="btn" data-a="pround" data-v="still">Next round · stood still</button><button class="btn" data-a="pnew">New encounter</button>${hasSp('Natural Regeneration')?`<button class="btn" data-a="prapid" ${p.rapid?'disabled':''}>Natural Regeneration (1d4)</button>`:''}</div>
+  ${hasSp('Unyielding')?`<p class="meter">Unyielding: ${p.uny?'used this encounter':'ready'}</p>`:''}
   <h3>Momentum</h3>
   <div class="actions" style="margin-top:0">${Object.entries(MOM).map(([k,m])=>`<button class="btn" data-a="pmom" data-v="${k}" ${p.favor<m[0]?'disabled':''}>${m[0]}: ${m[1]}</button>`).join('')}</div>
   <h3>Conditions</h3>
@@ -855,7 +866,7 @@ ${ARC_AB.some(a=>hasArc(a[0]))?`<h3>Arc abilities</h3><div class="actions" style
 
 /* ---------- shell ---------- */
 const FNS=[stepSpecies,stepAttrs,stepCareer,stepSkills,stepArc,stepGear,stepSheet];
-function done(i){return [!!S.species&&(S.species!=='human'||floatLeft()===0),baseSpent()===totalPts(),!!S.career,ATTRS.every(a=>left(a)===0),Object.keys(S.arcAb||{}).length>0,(digiSpent()>0&&digiSpent()<=budget())||!!(S.gear||S.notes),warnings().length===0][i]}
+function done(i){return [!!S.species&&(S.species!=='human'||floatLeft()===0)&&spLeft()<=0,baseSpent()===totalPts(),!!S.career,ATTRS.every(a=>left(a)===0),Object.keys(S.arcAb||{}).length>0,(digiSpent()>0&&digiSpent()<=budget())||!!(S.gear||S.notes),warnings().length===0][i]}
 function render(){
   normalize();WEAPONS=myWeapons();save();
   const nb=S.mode!=='build';
@@ -880,7 +891,7 @@ document.addEventListener('click',e=>{
   switch(t.dataset.a){
     case 'mode':S.mode=v;break;
     case 'go':S.step=+v;break;
-    case 'species':if(S.species!==v){S.species=v;S.hFloat={};S.freeAb='';for(const a of ATTRS)if(S.base[a]+0>attrCap())S.base[a]=attrCap()}break;
+    case 'species':if(S.species!==v){S.species=v;S.spAb={};S.hFloat={};S.freeAb='';for(const a of ATTRS)if(S.base[a]+0>attrCap())S.base[a]=attrCap()}break;
     case 'ftrait':S.fTrait=v;break;
     case 'vp':S.vPrimary=v;break;
     case 'vx':S.vExtra=v;break;
@@ -892,7 +903,8 @@ document.addEventListener('click',e=>{
       for(const x of SKILLS[at][v]){const k=abKey(v,x),cap=(S.freeAb===k?Math.max(r,1):r);if(abRank(v,x)>cap){if(cap)S.abil[k]=cap;else delete S.abil[k]}}break}
     case 'buy':{const n=Math.max(0,(S.buy[v]||0)+d);if(n)S.buy[v]=Math.min(n,9);else delete S.buy[v];break}
     case 'armor':S.armor=S.armor===v?'':v;break;
-    case 'xp':{const x=XP();x[v]=Math.max(0,Math.min(v==='attr'?20:40,x[v]+d));break}
+    case 'xp':{const x=XP();x[v]=Math.max(0,Math.min(v==='attr'?20:v==='sp'?5:40,(x[v]||0)+d));break}
+    case 'spab':{if(!S.spAb)S.spAb={};if(S.spAb[v])delete S.spAb[v];else if(spLeft()>0)S.spAb[v]=true;break}
     case 'arcab':{if(!S.arcAb)S.arcAb={};if(S.arcAb[v])delete S.arcAb[v];else{const a=ARC_AB.find(x=>x[0]===v);if(a&&arcOK(a)&&arcKnown()<arcMax())S.arcAb[v]=true}break}
     case 'abc':{const cc=CAREER_AB[S.career];if(!cc)break;const it=cc.list.find(l=>l[0]===v);if(!it)break;
       if(d<0){for(const k of cc.sk)delete S.abil[abKey(k,'C:'+v)]}
