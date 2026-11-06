@@ -512,7 +512,7 @@ function stepCareer(){
   return h+'</div>';
 }
 function stepSkills(){
-  let h=`<h2>Skills and abilities</h2>
+  let h=`<h2>Skills and abilities</h2><div class="row"><span class="lab">Bonus ability points<small>GM-awarded extra ability points. <b>${XP().abil}</b> total.</small></span><span class="step"><button data-a="xp" data-v="abil" data-d="-1" ${XP().abil<=0?'disabled':''}>−</button><output>${XP().abil}</output><button data-a="xp" data-v="abil" data-d="1" ${XP().abil>=40?'disabled':''}>+</button></span></div>
   <p class="lede">Every point of an attribute is one skill rank. You need at least rank 1 in a skill to take its abilities. Per the v0.4 book, abilities are free in the first playtest (the cost shown is for later) and can be ranked up with no limit.</p>`;
   S.col=S.col||{};
   h+=`<div class="actions" style="margin:0 0 6px"><button class="btn" data-a="col" data-v="*open">Expand all</button><button class="btn" data-a="col" data-v="*shut">Collapse all</button></div>`;
