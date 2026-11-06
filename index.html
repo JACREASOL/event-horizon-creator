@@ -155,118 +155,189 @@ const spLeft=()=>spPts()-spUsed();
 const hasSp=n=>!!(S.spAb&&S.spAb[n]);
 const totalPts=()=>POINTS+XP().attr, attrCap=()=>XP().attr>0?10:ATTR_CAP; /* ability costs are placeholders until the rulebook defines them */
 const SKILLS={
-  muscles:{'Melee Combat':['Grapple','Disarm','Brutal Strike','Relentless','Juggernaut','Killing Blow','Rampage','Melee Weapon Familiarity'],'Athletics':['Heavy Lifting','Acrobatics','Unstoppable'],'Intimidation':[],'Stamina':[]},
-  accuracy:{'Firearms':['Close Range','Medium Range','Long Range','Weapon Familiarity','Weapon Mastery','Suppressing Fire','Apex Predator','Patient','Weak Point','Long Shot','Controlled Breathing'],'Throwing':[],'Stealth':['Sneak'],'Sleight of Hand':[],'Piloting':[]},
-  knowledge:{'Engineering':[],'Hacking':[],'Medical':[],'Investigation':[],'Arc Use':[]},
-  memory:{'Perception':['Eavesdropping','Combat Awareness'],'Lore':[],'Navigation':[],'Tactics':[],'Survival':[]},
-  charm:{'Persuasion':[],'Deception':[],'Negotiation':['Read the Room'],'Performance':[],'Leadership':['Battlefield Discipline']},
-  toughness:{'Endurance':['Battle Hardened','Second Wind','Iron Will','Thick Skin','Iron Lungs','Marathon','Unbreakable','Last Breath'],'Resistance':['Poison Resistant','Environmental Seal','Pain Tolerance','Toxin Immunity'],'Composure':[]}
+  muscles:{"Melee Combat":["Grapple", "Disarm", "Parry", "Cleave", "Sweeping Strike", "Shield Bash", "Intimidating Blow"],"Athletics":["Unstoppable", "Iron Grip", "Sprinter", "Heavy Lifter", "Leap", "Shoulder Charge"],"Intimidation":[],"Stamina":[]},
+  accuracy:{"Firearms":["Long Shot", "Controlled Breathing"],"Throwing":["Quick Toss", "Long Arm", "Pinpoint", "Ricochet"],"Stealth":["Shadow Cover", "Silent Takedown", "Lie Low", "Vanish", "Quiet Hands"],"Sleight of Hand":["Pickpocket", "Palm", "Quick Fingers"],"Piloting":[]},
+  knowledge:{"Engineering":["Jury-Rig", "Salvage", "Armor Tuning", "Overclock", "Field Turret"],"Hacking":["Intrusion", "Data Scrape", "Cold Boot", "Spoof Signal", "Backdoor"],"Medical":["Steady Hands", "Diagnosis", "First Aid", "Field Dressing", "Pharmacist"],"Investigation":["Connect the Dots", "Archive Diver", "Forensic Eye", "Cold Trail", "Case Board"],"Arc Use":[]},
+  memory:{"Perception":["Eagle Eye", "Keen Ears", "Spot the Lie", "Keen Nose", "Trailblazer", "Danger Sense", "Read the Scene", "Combat Awareness"],"Lore":["Historian", "Xenobiology", "Arc Scholar", "Underworld Contacts", "Cultural Lore", "Ancient Texts"],"Navigation":["Pathfinder", "Star Charts", "Shortcut", "Sure Footing", "Never Lost"],"Tactics":["Battle Reading", "Flanking Eye", "Call the Play", "Hold the Line", "Fallback"],"Survival":["Wilderness Savvy", "Forager", "Camp Craft", "Hazard Sense", "Cold Iron"]},
+  charm:{"Persuasion":["Silver Voice", "Rapport", "Calm the Room", "Plead Your Case", "Common Ground"],"Deception":["Smooth Liar", "Disguise Artist", "Poker Face", "Cover Story", "Feint"],"Negotiation":["Haggler", "Deal Maker", "Interrogator", "Leverage", "Walk Away"],"Performance":["Stage Presence", "Mimicry", "Captivate", "Inspiring Act", "Showstopper"],"Leadership":["Commanding Voice", "Team Player", "Rally", "Coordinated Strike", "Fearless Example"]},
+  toughness:{"Endurance":["Iron Lungs", "Marathon", "Unbreakable", "Last Breath"],"Resilience":["Poison Resistant", "Environmental Seal", "Pain Tolerance", "Toxin Immunity"],"Wounds":["Thick Skin"]}
 };
 const CHARMSK=['Persuasion','Deception','Negotiation','Performance','Leadership'];
 const SNEAK={1:'+1 to Sneak checks. Move quietly.',2:'+1. Move at a faster pace while staying stealthy.',3:'+2 to Sneak checks.',4:'+2. Gear no longer penalizes sneaking.',5:'+3 to Sneak checks.'};
 /* cost per rank, max rank, prerequisites. Costs come from the abilities chat; ones marked EST are placeholders from the old Soldier list. */
-const COST={'Brutal Strike':1,'Relentless':1,'Juggernaut':2,'Killing Blow':5,'Rampage':5,'Melee Weapon Familiarity':5,'Unstoppable':2,'Weapon Familiarity':5,'Weapon Mastery':5,'Suppressing Fire':2,'Apex Predator':5,'Patient':5,'Weak Point':5,'Long Shot':1,'Controlled Breathing':1,'Combat Awareness':5,'Battlefield Discipline':2,'Battle Hardened':1,'Second Wind':2,'Iron Will':5,'Thick Skin':1,'Iron Lungs':1,'Marathon':2,'Unbreakable':3,'Last Breath':5,'Poison Resistant':1,'Environmental Seal':2,'Pain Tolerance':2,'Toxin Immunity':5};
-const EST=['Brutal Strike','Patient','Weak Point','Long Shot','Controlled Breathing','Battle Hardened','Second Wind','Iron Will','Thick Skin'];
-const MAXR={'Relentless':1,'Juggernaut':1,'Killing Blow':1,'Rampage':1,'Melee Weapon Familiarity':1,'Unstoppable':1,'Weapon Familiarity':1,'Weapon Mastery':1,'Suppressing Fire':1,'Apex Predator':1,'Patient':1,'Weak Point':1,'Long Shot':1,'Controlled Breathing':1,'Combat Awareness':1,'Battlefield Discipline':1,'Second Wind':1,'Iron Will':1,'Thick Skin':3,'Iron Lungs':1,'Marathon':1,'Unbreakable':1,'Last Breath':1,'Poison Resistant':1,'Environmental Seal':1,'Pain Tolerance':1,'Toxin Immunity':1};
-const REQ={'Weapon Mastery':['Firearms','Weapon Familiarity',1],'Iron Will':['Endurance','Battle Hardened',3]};
+const COST={"Grapple": 1, "Disarm": 1, "Parry": 2, "Cleave": 3, "Sweeping Strike": 3, "Shield Bash": 2, "Intimidating Blow": 2, "Unstoppable": 2, "Iron Grip": 2, "Sprinter": 2, "Heavy Lifter": 1, "Leap": 3, "Shoulder Charge": 3, "Long Shot": 1, "Controlled Breathing": 1, "Quick Toss": 2, "Long Arm": 1, "Pinpoint": 2, "Ricochet": 3, "Shadow Cover": 2, "Silent Takedown": 3, "Lie Low": 2, "Vanish": 3, "Quiet Hands": 1, "Pickpocket": 1, "Palm": 1, "Quick Fingers": 2, "Jury-Rig": 2, "Salvage": 1, "Armor Tuning": 2, "Overclock": 3, "Field Turret": 4, "Intrusion": 1, "Data Scrape": 1, "Cold Boot": 2, "Spoof Signal": 2, "Backdoor": 3, "Steady Hands": 1, "Diagnosis": 1, "First Aid": 2, "Field Dressing": 2, "Pharmacist": 3, "Connect the Dots": 3, "Archive Diver": 2, "Forensic Eye": 2, "Cold Trail": 2, "Case Board": 3, "Eagle Eye": 1, "Keen Ears": 1, "Spot the Lie": 1, "Keen Nose": 1, "Trailblazer": 1, "Danger Sense": 3, "Read the Scene": 2, "Combat Awareness": 5, "Historian": 1, "Xenobiology": 1, "Arc Scholar": 1, "Underworld Contacts": 2, "Cultural Lore": 2, "Ancient Texts": 3, "Pathfinder": 1, "Star Charts": 1, "Shortcut": 2, "Sure Footing": 2, "Never Lost": 3, "Battle Reading": 1, "Flanking Eye": 1, "Call the Play": 3, "Hold the Line": 2, "Fallback": 2, "Wilderness Savvy": 1, "Forager": 1, "Camp Craft": 2, "Hazard Sense": 2, "Cold Iron": 3, "Silver Voice": 1, "Rapport": 1, "Calm the Room": 2, "Plead Your Case": 3, "Common Ground": 2, "Smooth Liar": 1, "Disguise Artist": 1, "Poker Face": 2, "Cover Story": 3, "Feint": 2, "Haggler": 1, "Deal Maker": 1, "Interrogator": 1, "Leverage": 2, "Walk Away": 2, "Stage Presence": 1, "Mimicry": 1, "Captivate": 2, "Inspiring Act": 3, "Showstopper": 4, "Commanding Voice": 1, "Team Player": 1, "Rally": 2, "Coordinated Strike": 3, "Fearless Example": 2, "Iron Lungs": 1, "Marathon": 2, "Unbreakable": 3, "Last Breath": 5, "Poison Resistant": 1, "Environmental Seal": 2, "Pain Tolerance": 2, "Toxin Immunity": 5, "Thick Skin": 1};
+const EST=[];
+const MAXR={"Grapple": 5, "Disarm": 5, "Parry": 1, "Cleave": 1, "Sweeping Strike": 1, "Shield Bash": 1, "Intimidating Blow": 1, "Unstoppable": 1, "Iron Grip": 1, "Sprinter": 1, "Heavy Lifter": 1, "Leap": 1, "Shoulder Charge": 1, "Long Shot": 3, "Controlled Breathing": 3, "Quick Toss": 1, "Long Arm": 1, "Pinpoint": 1, "Ricochet": 1, "Shadow Cover": 1, "Silent Takedown": 1, "Lie Low": 1, "Vanish": 1, "Quiet Hands": 1, "Pickpocket": 5, "Palm": 1, "Quick Fingers": 1, "Jury-Rig": 1, "Salvage": 1, "Armor Tuning": 1, "Overclock": 1, "Field Turret": 1, "Intrusion": 5, "Data Scrape": 1, "Cold Boot": 1, "Spoof Signal": 1, "Backdoor": 1, "Steady Hands": 5, "Diagnosis": 5, "First Aid": 1, "Field Dressing": 1, "Pharmacist": 1, "Connect the Dots": 1, "Archive Diver": 1, "Forensic Eye": 1, "Cold Trail": 1, "Case Board": 1, "Eagle Eye": 5, "Keen Ears": 5, "Spot the Lie": 5, "Keen Nose": 5, "Trailblazer": 5, "Danger Sense": 1, "Read the Scene": 1, "Combat Awareness": 1, "Historian": 5, "Xenobiology": 5, "Arc Scholar": 5, "Underworld Contacts": 1, "Cultural Lore": 1, "Ancient Texts": 1, "Pathfinder": 5, "Star Charts": 5, "Shortcut": 1, "Sure Footing": 1, "Never Lost": 1, "Battle Reading": 5, "Flanking Eye": 5, "Call the Play": 1, "Hold the Line": 1, "Fallback": 1, "Wilderness Savvy": 5, "Forager": 5, "Camp Craft": 1, "Hazard Sense": 1, "Cold Iron": 1, "Silver Voice": 5, "Rapport": 5, "Calm the Room": 1, "Plead Your Case": 1, "Common Ground": 1, "Smooth Liar": 5, "Disguise Artist": 5, "Poker Face": 1, "Cover Story": 1, "Feint": 1, "Haggler": 5, "Deal Maker": 5, "Interrogator": 5, "Leverage": 1, "Walk Away": 1, "Stage Presence": 5, "Mimicry": 5, "Captivate": 1, "Inspiring Act": 1, "Showstopper": 1, "Commanding Voice": 5, "Team Player": 5, "Rally": 1, "Coordinated Strike": 1, "Fearless Example": 1, "Iron Lungs": 1, "Marathon": 1, "Unbreakable": 1, "Last Breath": 1, "Poison Resistant": 1, "Environmental Seal": 1, "Pain Tolerance": 1, "Toxin Immunity": 1, "Thick Skin": 3};
+const REQ={};
 /* Career abilities (from the v0.4 draft). [name, point cost, effect]. Cost = old R number (assumed). Paid from the career's parent skills. */
 const CAREER_AB={
- 'Soldier':{label:'Firearms / Melee Combat / Tactics',sk:['Firearms','Melee Combat','Tactics'],list:[
-  ['Suppressing Fire',1,'Lay down fire in a cone or line. Enemies in the area make an Evasion roll or are Pinned on their next turn.'],
-  ['Quick Draw',1,'Draw and fire in the same action. No action cost to draw a weapon.'],
-  ['Covering Fire',1,'Use your action to protect an ally moving through open ground. They gain +2 Evasion until the start of your next turn.'],
-  ['Controlled Burst',2,'Fire 3 shots as one action. Each hit deals weapon damage; critical on 18+. Costs double ammo.'],
-  ['Called Shot',2,'Declare a body part before rolling. On hit: head (-2 to all rolls for 1 turn), legs (Slowed), arms (disarm or -1 attack).'],
-  ['Overwatch',2,'Hold your action. Free attack against any enemy that moves into your line of sight this turn.'],
-  ['Breach and Clear',3,'When entering a room, you and one ally may act before any enemy inside can react.'],
-  ['Suppression Expertise',3,'Suppressing Fire now Pins all enemies in the area, not just those who fail the Evasion roll.'],
-  ['Combat Reflexes',3,'Once per round, when an ally within 10 ft is attacked, make a free attack against the attacker if in range.'],
-  ['Precision Strike',3,'Once per encounter, deal maximum damage on a hit. The hit lands automatically if you are within range.'],
-  ['Grenade Mastery',4,'Throw grenades as a free action once per turn. Redirect a grenade mid-air (opposed Accuracy roll).'],
-  ['Tactical Retreat',4,'Disengage without provoking attacks of opportunity. Move up to half your Speed and fire one shot.'],
-  ['Steel Discipline',4,'Immune to Panicked. Allies within 10 ft gain +1 to fear and morale rolls.'],
-  ['Killzone',5,'Once per encounter, designate a 20 ft area. Any enemy entering it this turn is automatically hit for weapon damage.'],
-  ['Last Stand',5,'At 10 HP or below: +2 to attack rolls, and you cannot be Slowed or Pinned until the start of your next turn.'],
-  ['Squad Command',5,'As an action, give two allies a free Move. They also make one free attack each if already in range.']]},
+ 'Soldier':{label:'Firearms / Melee Combat / Wounds / Leadership',sk:['Firearms','Melee Combat','Wounds','Leadership'],list:[
+  ['Battle Hardened',1,r=>`+${5*r} to injury table rolls (up to +25 at rank 5).`,['Wounds'],5],
+  ['Second Wind',2,'Once per combat, free action: recover 1d8 HP.',['Wounds']],
+  ['Iron Will',5,'Once per session, treat one injury table roll as 76–100. Requires Battle Hardened rank 3.',['Wounds'],1,['Battle Hardened',3]],
+  ['Weapon Familiarity',5,'Pick one weapon type; ignore all range penalties with it.',['Firearms','Melee Combat']],
+  ['Weapon Mastery',5,'That weapon type deals one extra damage die. Requires Weapon Familiarity (same skill).',['Firearms','Melee Combat'],1,['Weapon Familiarity',1]],
+  ['Suppressing Fire',2,'Forgo your attack to apply Suppressed to all enemies in a 30 ft cone until your next turn.',['Firearms']],
+  ['Apex Predator',5,'Enemies you attack at range gain no cover bonus to Evasion.',['Firearms']],
+  ['Patient',5,'You take no Standing Still penalty to Evasion. No attack bonus.',['Firearms']],
+  ['Weak Point',5,'Once per combat, one attack that hits ignores all AP.',['Firearms']],
+  ['Battlefield Discipline',2,'Allies within medium range who can see or hear you are immune to Panicked.',['Leadership']],
+  ['Relentless',1,'After dropping an enemy to 0 HP, move up to 10 ft as a free action.',['Melee Combat']],
+  ['Brutal Strike',1,r=>`A melee hit applies Weakened (1 turn). ${r} use${r>1?'s':''} per combat.`,['Melee Combat'],3],
+  ['Juggernaut',2,'When you Sprint, move through enemies; each takes 1d6 damage.',['Melee Combat']],
+  ['Killing Blow',5,'A melee critical hit forces the target to roll on the injury table regardless of remaining HP.',['Melee Combat']],
+  ['Rampage',5,'Once per combat, make two melee attacks as one Action.',['Melee Combat']]]},
  'Medic':{label:'Medical',sk:['Medical'],list:[
   ['Field Medic',2,'Action: heal 1d8 by touch. Once per ally per Breather.'],
   ['Triage',2,'When an ally drops to 0 HP, add +10 to their injury table roll.'],
   ['Antitoxin',2,'Medical check ends one Poison. Against a Toxin, remove one attribute penalty.'],
   ['Combat Stims',3,'Once per combat, an ally gets +1 attack and +1 Toughness for 3 rounds, then is Weakened.'],
   ['Surgeon',4,'During Downtime, remove one lingering injury.']]},
- 'Bounty Hunter':{label:'Investigation / Perception / Survival / Firearms / Melee Combat / Athletics',sk:['Investigation','Perception','Survival','Firearms','Melee Combat','Athletics'],list:[
-  ['Mark the Target',2,'Action: name one enemy as your mark. +1 to all attacks against them. One at a time. Ends when they drop or the scene ends. (Investigation)'],
-  ['Tracker',2,'+2 to follow a trail. Once per scene, learn which way a target went and how long ago. (Survival)'],
-  ['Snare Shot',3,'Fire a restraint round. On hit, the target is Slowed until the end of their next turn. (Firearms)'],
-  ["Take 'Em Alive",3,'Melee hits may deal non-lethal damage. At 0 HP, the target is subdued with no injury table roll. (Melee Combat)'],
-  ['Binding Cuffs',1,'Restrain a grappled or subdued target as a free action. They need a Standard check to break free. (Athletics)']]},
- 'Hacker':{label:'Hacking',sk:['Hacking'],note:'Uses a Bandwidth pool (never HP). Needs a Hacking Rig (200 Digi).',list:[
+ 'Bounty Hunter':{label:'Investigation / Perception / Survival / Firearms / Melee Combat / Athletics',sk:['Investigation','Survival','Firearms','Melee Combat','Athletics'],list:[
+  ['Mark the Target',2,'Action: name one enemy as your mark. +1 to all attacks against them. One at a time. Ends when they drop or the scene ends.',['Investigation']],
+  ['Tracker',2,'+2 to follow a trail. Once per scene, learn which way a target went and how long ago.',['Survival']],
+  ['Snare Shot',3,'Fire a restraint round. On hit, the target is Slowed until the end of their next turn.',['Firearms']],
+  ['Take \'Em Alive',3,'Melee hits may deal non-lethal damage. At 0 HP, the target is subdued with no injury table roll.',['Melee Combat']],
+  ['Binding Cuffs',1,'Restrain a grappled or subdued target as a free action. They need a Standard check to break free.',['Athletics']]]},
+ 'Hacker':{label:'Hacking',sk:['Hacking'],note:'Uses a Bandwidth pool (never HP). Needs a Hacking Rig (200 Digi). The book prices these in Bandwidth: Ghost Protocol 1, System Probe free, Lockpick 2, Bandwidth Spike 3, System Crash 4. Point costs below are for the skill pool.',list:[
   ['Ghost Protocol',1,'Mask your signal. While active, hacks cannot be traced to your location. Costs 1 Bandwidth.'],
-  ['System Probe',1,'Scan a connected network or device. Learn its systems and security rating before attacking.'],
-  ['Lockpick',2,'Crack a door, terminal, or lock without a Ghost Spike. Roll Hacking vs. security rating.'],
+  ['System Probe',1,'Scan a network or device. Learn what systems are present and their security rating before attacking. Free to use.'],
+  ['Lockpick',2,'Crack a door, terminal, or lock without a Ghost Spike. Roll Hacking vs. security rating. Costs 2 Bandwidth.'],
   ['Bandwidth Spike',2,'Spend 3 Bandwidth for +3 to your next Hacking roll. Can be used reactively.'],
-  ['System Crash',3,'Shut down a drone, turret, security door, or vehicle for 2 turns. Costs 4 Bandwidth.']]},
+  ['System Crash',3,'Shut down an enemy system (drone, turret, door, vehicle) for 2 turns. Costs 4 Bandwidth.']]},
  'Smuggler':{label:'Sleight of Hand / Deception / Piloting / Charm',sk:CHARMSK.concat(['Sleight of Hand','Piloting']),list:[
-  ['Hidden Compartment',2,'Conceal an item up to pistol size. Searchers need a Hard (18) check to find it. (Sleight of Hand)'],
-  ['Forged Papers',2,'Produce a permit or ID in a Breather. Opponents roll Memory Hard (18) to detect the forgery. (Deception)'],
-  ['Fast Talk',2,'Talk past a guard or suspicious NPC. Roll Charm vs. Memory. On success, no search.'],
-  ['Black Market Contact',2,'Once per session, source restricted gear or information at Black Market tier (price set by GM).'],
-  ['Slippery',3,'During a chase, +2 to all rolls to evade, hide, or outmaneuver the pursuer. (Piloting)'],
-  ['Ghost Run',5,'Once per session, your ship goes dark: no transponder, no emissions, undetectable for 10 min. Cannot fire while active. (Piloting)']]},
+  ['Hidden Compartment',2,'Conceal an item up to pistol size. Searchers need a Hard check to find it.',['Sleight of Hand']],
+  ['Forged Papers',2,'Produce a permit or ID in a Breather. Opponents roll Memory Hard (18) to detect the forgery.',['Deception']],
+  ['Fast Talk',2,'Talk past a guard or suspicious NPC. Roll Charm vs. Memory. On success, no search.',CHARMSK],
+  ['Black Market Contact',2,'Once per session, source restricted gear or information at Black Market tier (price set by GM).',CHARMSK],
+  ['Slippery',3,'During a chase, gain +2 to all rolls to evade, hide, or outmaneuver the pursuer.',['Piloting']],
+  ['Ghost Run',5,'Once per session, your ship goes dark: no transponder, no emissions, undetectable for 10 min. Cannot fire while active.',['Piloting']]]},
  'Performer':{label:'Charm / Deception / Perception / Lore',sk:CHARMSK.concat(['Perception','Lore']),list:[
-  ['Commanding Presence',2,'When you speak to a crowd or NPC group, all targets must pass Memory Standard (10) or be Distracted for 1 turn. (Charm)'],
-  ['Silver Tongue',3,'Once per scene, reroll a failed Charm check and take the higher result. (Charm)'],
-  ['Read the Room',2,'Before a social encounter, learn one NPC\'s current emotional state or primary motivation (GM reveals one detail). (Perception)'],
-  ['Play Dead',3,'Convince onlookers you are unconscious or dead. Requires stillness. Lasts until you act or are touched. (Deception)'],
-  ['Crowd Cover',2,'In a public space, blend into a crowd. Pursuit checks against you are Hard (15) for the scene. (Deception)'],
-  ['Inspiration',4,'Once per combat, an ally within medium range gains +1 to all rolls for 2 turns. (Charm)'],
-  ['Cultural Lore',2,'Know customs, symbols, and taboos of any species you have met. Avoid social blunders automatically. (Lore)']]}
+  ['Commanding Presence',2,'When you speak to a crowd or NPC group, all targets must pass Memory Standard (10) or be Distracted for 1 turn.',CHARMSK],
+  ['Silver Tongue',3,'Once per scene, reroll a failed Charm check and take the higher result.',CHARMSK],
+  ['Read the Room',2,'Before a social encounter, learn one NPC\'s current emotional state or primary motivation (GM reveals one detail).',['Perception']],
+  ['Play Dead',3,'Convince onlookers you are unconscious or dead. Requires stillness. Lasts until you act or are touched.',['Deception']],
+  ['Crowd Cover',2,'In a public space, blend into a crowd. Pursuit checks against you are Hard (15) for the scene.',['Deception']],
+  ['Inspiration',4,'Once per combat, an ally within medium range gains +1 to all rolls for 2 turns.',CHARMSK],
+  ['Cultural Lore',2,'Know customs, symbols, and taboos of any species you have met. Avoid social blunders automatically.',['Lore']]]}
 };
 const careerCost=n=>{const c=CAREER_AB[S.career];const it=c&&c.list.find(l=>l[0]===n);return it?it[1]:1};
 const unitCost=x=>x.startsWith('C:')?careerCost(x.slice(2)):(COST[x]||ABILITY_RANK_COST);
-const SKREQ={'Combat Awareness':5,'Toxin Immunity':5};
+const SKREQ={'Combat Awareness':5,'Toxin Immunity':5,'Danger Sense':3};
 const skOk=(s,x)=>!SKREQ[x]||skillRank(s)>=SKREQ[x];
 const reqOk=x=>{const q=REQ[x];return !q||abRank(q[0],q[1])>=q[2]};
+const T=(t,r)=>t.replace(/\{4r\}/g,4*r).replace(/\{r\}/g,r);
 const AB={
-  'Iron Lungs':()=>'Ignore the first level of Exhaustion each encounter.',
-  'Marathon':()=>'Sprint without spending your Action. It costs your Move action instead.',
-  'Unbreakable':()=>'Once per session, automatically pass one Toughness or Endurance check.',
-  'Last Breath':()=>'When you would gain Exhausted, roll Endurance Hard (15) to ignore it.',
-  'Poison Resistant':()=>'Poison ticks deal 1 less damage (minimum 1).',
-  'Environmental Seal':()=>'Ignore environmental hazards (vacuum, extreme heat or cold) for 1 scene. Requires sealed armor.',
-  'Pain Tolerance':()=>'Ignore the -1 roll penalty from Deep Wound and similar minor injuries.',
-  'Toxin Immunity':()=>'Immune to the Toxin condition. Needs Resistance rank 5.',
-  'Brutal Strike':r=>`Once per turn, a melee hit also applies Weakened. ${r} use${r>1?'s':''} per combat.`,
-  'Relentless':()=>'After dropping an enemy to 0 HP, move up to 10 ft as a free action.',
-  'Juggernaut':()=>'When you Sprint, move through enemies; each takes 1d6 damage.',
-  'Killing Blow':()=>'A melee critical hit forces the target to roll on the injury table regardless of remaining HP.',
-  'Rampage':()=>'Once per combat, make two melee attacks as one Action.',
-  'Melee Weapon Familiarity':()=>'Pick one melee weapon type; your attacks with it bypass armor on a natural 19+.',
-  'Unstoppable':()=>'Immune to Slowed. Difficult terrain costs no extra movement.',
-  'Weapon Familiarity':()=>'Pick one weapon type; ignore range penalties with it.',
-  'Weapon Mastery':()=>'Needs Weapon Familiarity. Pick one weapon type; its attacks deal one extra damage die.',
-  'Suppressing Fire':()=>'Forgo your attack to apply Suppressed to all enemies in a 30 ft cone until your next turn.',
-  'Apex Predator':()=>'Enemies Engaged with you get no cover bonus to Evasion.',
-  'Patient':()=>'If you did not move last turn, +1 to attack rolls this turn. Stacks with Steady Aim.',
-  'Weak Point':()=>'Once per combat, one attack that hits ignores all AP.',
-  'Long Shot':()=>'Maximum range extends one range band.',
-  'Controlled Breathing':()=>'Once per turn, reroll one attack die and take the higher.',
-  'Combat Awareness':()=>'Never surprised. Always act in the first round even if ambushed.',
-  'Battlefield Discipline':()=>'Allies within Medium range who can see or hear you are immune to Panicked.',
-  'Battle Hardened':r=>`+${5*r} to injury table rolls.`,
-  'Second Wind':()=>'Once per combat, free action: recover 1d8 HP.',
-  'Iron Will':()=>'Needs Battle Hardened rank 3. Once per session, treat one injury table roll as 76–100.',
-  'Thick Skin':r=>`+${4*r} maximum HP. The only way to raise max HP.`,
-  'Heavy Lifting':r=>`Lift about ${150+50*(r-1)} lbs. without a check.`,
-  'Acrobatics':r=>`+${r} to Acrobatics rolls.`,
-  'Grapple':r=>`Attack vs. Defense at +${r}. On success the target is restrained until they break free.`,
-  'Disarm':r=>`Attack vs. Defense. Success knocks the weapon loose; a strong success may let you seize it. (Rank 1+; rank scaling not yet defined.)`,
-  'Close Range':r=>`+${r} Accuracy with weapons suited to 6–30 ft.`,
-  'Medium Range':r=>`+${r} Accuracy with weapons suited to 31–90 ft.`,
-  'Long Range':r=>`+${r} Accuracy with weapons suited to 91–180 ft.`,
-  'Sneak':r=>SNEAK[r],
-  'Eavesdropping':r=>`Listen through barriers or at a distance. Rank ${r} improves range and clarity.`,
-  'Read the Room':r=>`Insight into a person or place. +${r} on a following Negotiation or Con check against them.`
+  "Grapple":r=>T("Melee attack vs. target's defense. On success the enemy is restrained until they win a break-free contest on their turn. +{r} to the check (1 per Melee rank invested).",r),
+  "Disarm":r=>T("Melee attack vs. target's defense, +{r}. On success the weapon is knocked loose nearby. A Strong success lets you catch it (GM discretion).",r),
+  "Parry":r=>T("Reaction: when a melee attack misses you, make one free attack against that enemy.",r),
+  "Cleave":r=>T("When you drop an enemy to 0 HP, make one free attack on another enemy adjacent to it.",r),
+  "Sweeping Strike":r=>T("Attack every enemy within 5 ft as one Action. -2 penalty to the attack roll.",r),
+  "Shield Bash":r=>T("Requires a shield or similar. A hit also knocks the target Prone on a failed Toughness check.",r),
+  "Intimidating Blow":r=>T("When you hit, the target takes -1 to attacks against you until your next turn.",r),
+  "Unstoppable":r=>T("Immune to Slowed. Difficult terrain costs no extra movement.",r),
+  "Iron Grip":r=>T("Advantage on grapple and climbing checks. You can hang from a ledge or surface indefinitely.",r),
+  "Sprinter":r=>T("When you Sprint, gain an extra 10 ft of movement.",r),
+  "Heavy Lifter":r=>T("Count as one size larger for carrying and pushing. Drag a downed ally at full speed.",r),
+  "Leap":r=>T("Jump double your normal distance with no check required.",r),
+  "Shoulder Charge":r=>T("When you Sprint into an enemy, they are knocked Prone on a failed Toughness check.",r),
+  "Long Shot":r=>T("Maximum Firearms range extended by {r} range band(s).",r),
+  "Controlled Breathing":r=>T("Reroll {r} attack di(c)e per combat, keeping the higher result each time.",r),
+  "Quick Toss":r=>T("Throw a grenade or small item as a free action once per turn.",r),
+  "Long Arm":r=>T("Double the range on all thrown weapons and grenades.",r),
+  "Pinpoint":r=>T("Thrown attacks ignore partial and half cover.",r),
+  "Ricochet":r=>T("Bounce a thrown weapon off a surface to hit a target behind full cover. The weapon returns to your hand on a hit.",r),
+  "Shadow Cover":r=>T("In dim light or behind cover, enemies need a Hard check to spot you.",r),
+  "Silent Takedown":r=>T("Hit an unaware enemy for double damage. They cannot call out or alert others.",r),
+  "Lie Low":r=>T("When you hide, you stay hidden even while enemies search your area, unless they beat a Standard Perception check.",r),
+  "Vanish":r=>T("Once per combat, slip out of sight as a free action, even when observed, if anything nearby provides cover.",r),
+  "Quiet Hands":r=>T("Pick locks, plant devices, or swap items without a sound or a Stealth check.",r),
+  "Pickpocket":r=>T("Lift items from a target using Sleight of Hand vs. their Perception, +{r}. Rank 1: small items. Rank 3: anything held in one hand. Rank 5: plant an item on them instead.",r),
+  "Palm":r=>T("Conceal a small object in your hand. Searchers need a Hard check to find it.",r),
+  "Quick Fingers":r=>T("Reload, swap, or stow an item as a free action once per turn.",r),
+  "Jury-Rig":r=>T("Repair a broken item or ship module until your next Rest.",r),
+  "Salvage":r=>T("Strip a wreck or ruin during a Breather for parts worth Digi.",r),
+  "Armor Tuning":r=>T("During a Rest, give one ally +2 AP until their next Rest.",r),
+  "Overclock":r=>T("Engineering Boost adds a d6 instead of a d4. The module goes offline next round.",r),
+  "Field Turret":r=>T("Build a turret during a Breather. 10 HP, one ranged attack per round. One active at a time.",r),
+  "Intrusion":r=>T("+{r} to Hacking checks against locks, terminals, and doors.",r),
+  "Data Scrape":r=>T("During Research, a Bare Success counts as Strong for terminal or network sources.",r),
+  "Cold Boot":r=>T("Restart a disabled device or ship system as an Action. No check required.",r),
+  "Spoof Signal":r=>T("Make a device or scanner read you as friendly or as nothing at all, for one scene.",r),
+  "Backdoor":r=>T("After breaching a system, retain access until it is wiped. Future checks against it gain +2.",r),
+  "Steady Hands":r=>T("+{r} to Medical checks for stabilizing, treating injuries, and surgery.",r),
+  "Diagnosis":r=>T("+{r} to identifying conditions, poisons, and injuries.",r),
+  "First Aid":r=>T("Restore 2 HP to an ally as an Action (once per ally per scene). No roll required.",r),
+  "Field Dressing":r=>T("Stop a bleeding effect as a Free Action. The target loses no further HP from that wound.",r),
+  "Pharmacist":r=>T("During a Breather, craft one dose of antitoxin, stimulant, or painkiller from salvaged parts.",r),
+  "Connect the Dots":r=>T("Once per session, the GM answers one question about a clue you have found.",r),
+  "Archive Diver":r=>T("Research takes half the time. A Bare Success counts as Strong.",r),
+  "Forensic Eye":r=>T("Examining a scene or body, you learn one extra detail: time of death, how long ago someone was here, or similar.",r),
+  "Cold Trail":r=>T("+2 to any roll made to follow a lead or trace a person.",r),
+  "Case Board":r=>T("Spend a Breather organizing clues. One ally gains +2 to their next roll related to the same case.",r),
+  "Eagle Eye":r=>T("Sight-based perception. +{r} to spotting distant objects, reading lips, tracking movement.",r),
+  "Keen Ears":r=>T("Sound-based perception. +{r} to hearing conversations, detecting footsteps, identifying sounds.",r),
+  "Spot the Lie":r=>T("Social perception. +{r} to reading facial cues, body language, and micro-expressions.",r),
+  "Keen Nose":r=>T("Scent-based perception. +{r} to detecting chemicals, following a trail by smell, identifying substances.",r),
+  "Trailblazer":r=>T("Tracking perception. +{r} to following footprints, disturbed terrain, and environmental signs.",r),
+  "Danger Sense":r=>T("You cannot be caught flat-footed. Always act in the first round, even if ambushed. Requires Perception rank 3.",r),
+  "Read the Scene":r=>T("When you enter a new location, the GM reveals one detail about recent events there: a struggle, an intruder, an emotion left in the air.",r),
+  "Combat Awareness":r=>T("Never surprised. Always act in the first round, even if ambushed. Requires Perception rank 5.",r),
+  "Historian":r=>T("+{r} to rolls involving historical events, factions, and civilizations.",r),
+  "Xenobiology":r=>T("+{r} to rolls involving alien biology, behavior, and ecology.",r),
+  "Arc Scholar":r=>T("+{r} to rolls involving Arc technology, artifacts, and phenomena.",r),
+  "Underworld Contacts":r=>T("Once per session, ask a question about criminal activity, contraband, or black markets. The GM answers honestly.",r),
+  "Cultural Lore":r=>T("Know the customs, symbols, and social taboos of any species you have encountered. Avoid blunders automatically.",r),
+  "Ancient Texts":r=>T("Once per session, recall a fact from a dead language or lost culture. No roll required.",r),
+  "Pathfinder":r=>T("+{r} to Navigation checks in wilderness, urban, or underground environments.",r),
+  "Star Charts":r=>T("+{r} to Navigation checks in space and orbital plotting.",r),
+  "Shortcut":r=>T("When traveling overland or through a station, reduce travel time by half once per scene.",r),
+  "Sure Footing":r=>T("Ignore difficult terrain that is not actively dangerous (rubble, dense growth, low-g). No check required.",r),
+  "Never Lost":r=>T("You always know true north and your approximate position, even in total darkness, underground, or in deep space.",r),
+  "Battle Reading":r=>T("+{r} to Tactics checks for assessing enemy positions, movement, and weak points.",r),
+  "Flanking Eye":r=>T("+{r} to setting up or identifying flanking opportunities and ambush positions.",r),
+  "Call the Play":r=>T("Once per combat, give a tactical order. Allies who follow it gain +2 to their next roll.",r),
+  "Hold the Line":r=>T("Allies within close range who would be Pushed Back may choose to remain in place.",r),
+  "Fallback":r=>T("Once per combat, direct an ally to disengage without provoking an opportunity attack.",r),
+  "Wilderness Savvy":r=>T("+{r} to Survival checks in natural environments: jungle, arctic, desert, void.",r),
+  "Forager":r=>T("+{r} to finding food, water, and usable resources in the wild.",r),
+  "Camp Craft":r=>T("When your group Rests in a hostile environment, everyone recovers as though in a safe location.",r),
+  "Hazard Sense":r=>T("You automatically detect natural hazards (quicksand, gas vents, unstable ground) before entering them.",r),
+  "Cold Iron":r=>T("Once per session, improvise a usable weapon or tool from available materials. It functions normally for the scene.",r),
+  "Silver Voice":r=>T("+{r} to Persuasion checks when making requests, arguments, or appeals.",r),
+  "Rapport":r=>T("+{r} to Persuasion checks with individuals you have spoken to at least once before.",r),
+  "Calm the Room":r=>T("Reduce a hostile or tense crowd to neutral as an Action. Requires eye contact and no ongoing threat.",r),
+  "Plead Your Case":r=>T("Once per session, present an argument with no roll required. The GM decides the outcome based on the fiction. Cannot undo severe or irreversible things.",r),
+  "Common Ground":r=>T("Once per session, discover a shared background or value with an NPC. They treat you as a known contact for the rest of the scene.",r),
+  "Smooth Liar":r=>T("+{r} to Deception checks when lying under pressure or scrutiny.",r),
+  "Disguise Artist":r=>T("+{r} to Deception checks while wearing a disguise or impersonating someone.",r),
+  "Poker Face":r=>T("You cannot be read by Spot the Lie or similar social Perception abilities unless the observer rolls a Critical Success.",r),
+  "Cover Story":r=>T("Once per session, establish a false identity for the scene. NPCs who investigate it find consistent evidence supporting it.",r),
+  "Feint":r=>T("Deceive an enemy in combat. On a successful Deception check vs. their Perception, they lose their Reaction until the start of your next turn.",r),
+  "Haggler":r=>T("+{r} to Negotiation checks when bargaining over prices, trades, or terms.",r),
+  "Deal Maker":r=>T("+{r} to Negotiation checks when brokering agreements between two parties.",r),
+  "Interrogator":r=>T("+{r} to Negotiation checks when extracting information through pressure or questioning.",r),
+  "Leverage":r=>T("Once per session, use known information about an NPC to shift a negotiation in your favor. No roll required; the GM determines how much ground they yield.",r),
+  "Walk Away":r=>T("When you leave a negotiation unresolved, the other party contacts you again within the session with a better offer.",r),
+  "Stage Presence":r=>T("+{r} to Performance checks in front of an audience: singing, acting, oration, or instrument.",r),
+  "Mimicry":r=>T("+{r} to mimicking voices, accents, or mannerisms. Can reproduce a sound heard once.",r),
+  "Captivate":r=>T("While performing, all observers who fail a Memory check are Distracted and cannot take Reactions.",r),
+  "Inspiring Act":r=>T("A Performance witnessed by your allies grants each of them +1 to their next roll, once per scene.",r),
+  "Showstopper":r=>T("Once per session, your performance causes all hostile activity in the area to pause for one round. No violence, no movement.",r),
+  "Commanding Voice":r=>T("+{r} to Leadership checks when giving orders under pressure or in chaos.",r),
+  "Team Player":r=>T("+{r} when assisting an ally's action (the Help action or equivalent).",r),
+  "Rally":r=>T("Once per combat, restore 1d4 HP to one ally within medium range as a Free Action.",r),
+  "Coordinated Strike":r=>T("Designate one enemy. All allies who attack that target this round gain +2 to attack.",r),
+  "Fearless Example":r=>T("When you succeed at a risky or dramatic action, one ally of your choice gains +2 to their next roll.",r),
+  "Iron Lungs":r=>T("Ignore the first level of Exhaustion each encounter.",r),
+  "Marathon":r=>T("Sprint without spending your Action. It costs your Move action instead.",r),
+  "Unbreakable":r=>T("Once per session, automatically pass one Toughness or Endurance check.",r),
+  "Last Breath":r=>T("When you would gain Exhausted, roll Endurance Hard (15) to ignore it.",r),
+  "Poison Resistant":r=>T("Poison ticks deal 1 less damage (minimum 1).",r),
+  "Environmental Seal":r=>T("Ignore environmental hazards (vacuum, extreme heat or cold) for 1 scene. Requires sealed armor.",r),
+  "Pain Tolerance":r=>T("Ignore the -1 roll penalty from Deep Wound and similar minor injuries.",r),
+  "Toxin Immunity":r=>T("Immune to the Toxin condition. Requires Resilience rank 5.",r),
+  "Thick Skin":r=>T("+{4r} max HP (up to +12). The only way to raise your maximum HP.",r)
 };
 const SPECIES={
   human:{name:'Human',tag:'The wildcard species',float:2,spd:3,sil:1,
@@ -354,7 +425,10 @@ function spent(attr){
   return n;
 }
 const skOf=s=>{for(const a of ATTRS)if(SKILLS[a][s])return SKILLS[a][s].concat(abCareer(s));return[]};
-const abCareer=s=>{const c=CAREER_AB[S.career];return c&&c.sk.includes(s)?c.list.map(l=>'C:'+l[0]):[]};
+const cski=(c,it)=>it[3]?[].concat(it[3]):c.sk;
+const cfx=(it,r)=>typeof it[2]==='function'?it[2](r):it[2];
+const cab=n=>{const c=CAREER_AB[S.career];if(!c)return 0;const it=c.list.find(l=>l[0]===n);return it?Math.max(0,...cski(c,it).map(k=>abRank(k,'C:'+n))):0};
+const abCareer=s=>{const c=CAREER_AB[S.career];return c?c.list.filter(l=>cski(c,l).includes(s)).map(l=>'C:'+l[0]):[]};
 const abSpentSk=s=>skOf(s).reduce((n,x)=>n+abCost(s,x),0);
 const abLeft=s=>skillRank(s)-abSpentSk(s);
 const allSkills=()=>ATTRS.flatMap(a=>Object.keys(SKILLS[a]));
@@ -380,7 +454,7 @@ function normalize(){
    for(const k of Object.keys(S.spAb))if(!S.spAb[k]||!names.includes(k))delete S.spAb[k];
    for(const k of Object.keys(S.spAb).reverse()){if(spUsed()<=spPts())break;delete S.spAb[k]}}for(const k of Object.keys(S.arcAb))if(!ARC_AB.find(a=>a[0]===k))delete S.arcAb[k];
   for(const k of Object.keys(S.skills))if(!allSkills().includes(k))delete S.skills[k];
-  for(const k of Object.keys(S.abil)){const [sk,n]=k.split('|');if(!allSkills().includes(sk)||(n.startsWith('C:')&&!((CAREER_AB[S.career]||{list:[]}).list.some(l=>l[0]===n.slice(2))))||(!n.startsWith('C:')&&!(SKILLS[ATTRS.find(a=>SKILLS[a][sk])][sk]||[]).includes(n)))delete S.abil[k]}
+  for(const k of Object.keys(S.abil)){const [sk,n]=k.split('|');if(!allSkills().includes(sk)||(n.startsWith('C:')&&!((CAREER_AB[S.career]||{list:[],sk:[]}).list.some(l=>l[0]===n.slice(2)&&cski(CAREER_AB[S.career],l).includes(sk))))||(!n.startsWith('C:')&&!(SKILLS[ATTRS.find(a=>SKILLS[a][sk])][sk]||[]).includes(n)))delete S.abil[k]}
 }
 const arcPool=()=>(final('knowledge')+final('memory'))*3+((SPECIES[S.species]||{}).arc||0);
 const bonusChips=()=>{
@@ -447,7 +521,7 @@ function stepSkills(){
     h+=`<h3><button class="tgl" data-a="col" data-v="a:${a}" aria-expanded="${!ac}">${ac?'▸':'▾'}</button> ${AL[a]} <span class="meter ${l<0?'over':''}">· <b>${l}</b> of ${pool} left</span></h3>`;
     if(ac)continue;
     const sk=SKILLS[a];
-    if(!Object.keys(sk).length){h+=`<p class="lede" style="font-size:13px">Toughness has one skill so far.</p>`;continue}
+    if(!Object.keys(sk).length){h+=`<p class="lede" style="font-size:13px"></p>`;continue}
     for(const s in sk){
       const r=skillRank(s),sc=!!S.col['s:'+s],nab=sk[s].filter(x=>abRank(s,x)>0).length;
       h+=`<div class="row"><span class="lab"><button class="tgl" data-a="col" data-v="s:${s}" aria-expanded="${!sc}">${sc?'▸':'▾'}</button> ${s}${sc&&nab?` <span class="chip">${nab} abilit${nab>1?'ies':'y'}</span>`:''}</span><span class="step"><button data-a="skill" data-v="${s}" data-at="${a}" data-d="-1" ${r<=0?'disabled':''}>−</button><output>${r}</output><button data-a="skill" data-v="${s}" data-at="${a}" data-d="1" ${l<=0||r>=5?'disabled':''}>+</button></span></div>`;
@@ -470,10 +544,11 @@ function stepSkills(){
   if(!S.career)h+='<p class="lede" style="font-size:13px">Pick a career to see its abilities.</p>';
   else if(!cc)h+='<p class="lede" style="font-size:13px">No abilities written for this career yet.</p>';
   else{
-    h+=`<p class="meter">Paid from your ${cc.sk.map(k=>`${k} <b>${abLeft(k)}</b>`).join(' · ')} ability points left. Cost is the number on the chip. Only ${S.career} abilities show here.</p>${cc.note?`<p class="meter">${cc.note}</p>`:''}<div class="abilities">`;
-    for(const [x,r,fx] of cc.list){
-      const own=cc.sk.some(k=>abRank(k,'C:'+x)),can=!own&&cc.sk.some(k=>skillRank(k)>0&&canSpend(k,r));
-      h+=`<div class="row"><span class="lab">${x} <span class="chip">${r} pt${r>1?'s':''}</span></span><span class="step"><button data-a="abc" data-v="${x}" data-d="-1" ${own?'':'disabled'}>−</button><output>${own?1:0}</output><button data-a="abc" data-v="${x}" data-d="1" ${can?'':'disabled'}>+</button></span><span class="fx">${fx}</span></div>`;
+    h+=`<p class="meter">Each ability is paid from the skill shown on its chip. Left: ${cc.sk.map(k=>`${k} <b>${abLeft(k)}</b>`).join(' · ')}. Only ${S.career} abilities show here.</p>${cc.note?`<p class="meter">${cc.note}</p>`:''}<div class="abilities">`;
+    for(const it of cc.list){
+      const x=it[0],r=it[1],sks=cski(cc,it),mx=it[4]||1,own=cab(x),rq=it[5],rqok=!rq||cab(rq[0])>=rq[1];
+      const can=own<mx&&rqok&&(own?sks.some(k=>abRank(k,'C:'+x)&&canSpend(k,r)):sks.some(k=>skillRank(k)>0&&canSpend(k,r)));
+      h+=`<div class="row"><span class="lab">${x} <span class="chip">${r} pt${r>1?'s':''}${mx>1?'/rank':''}</span>${it[3]?` <span class="chip">${sks.length>2?'Charm':sks.join(' / ')}</span>`:''}</span><span class="step"><button data-a="abc" data-v="${x}" data-d="-1" ${own?'':'disabled'}>−</button><output>${own}</output><button data-a="abc" data-v="${x}" data-d="1" ${can?'':'disabled'}>+</button></span><span class="fx">${cfx(it,Math.max(own,1))}</span></div>`;
     }
     h+='</div>';
   }
@@ -629,7 +704,7 @@ function textSheet(){
     const ab=SKILLS[a][s].filter(x=>abRank(s,x)).map(x=>`${x} R${abRank(s,x)}`);
     L.push(`- ${s} ${r}${ab.length?' ['+ab.join(', ')+']':''}`);
   }
-  {const cc=CAREER_AB[S.career];if(cc){const own=cc.list.filter(l=>cc.sk.some(k=>abRank(k,'C:'+l[0])));if(own.length){L.push('',`${S.career.toUpperCase()} ABILITIES`);for(const l of own)L.push(`- ${l[0]}: ${l[2]}`)}}}
+  {const cc=CAREER_AB[S.career];if(cc){const own=cc.list.filter(l=>cab(l[0]));if(own.length){L.push('',`${S.career.toUpperCase()} ABILITIES`);for(const l of own)L.push(`- ${l[0]}${(l[4]||1)>1?' R'+cab(l[0]):''}: ${cfx(l,cab(l[0]))}`)}}}
   {const ar=ARC_AB.filter(a=>hasArc(a[0]));if(ar.length){L.push('','ARC ABILITIES');for(const a of ar)L.push(`- ${a[0]} (${a[1]===0?'Free':arcCost(a[1])+' Arc'}): ${a[2]}`)}}
   if(S.freeAb){const [s,x]=S.freeAb.split('|');if(!abRank(s,x))L.push(`- Free ability: ${x} R1`)}
   if(!any&&!S.freeAb)L.push('- none');
@@ -687,14 +762,14 @@ function injuryRoll(){
 function knownAbilities(){
   const out=[];
   for(const k in S.abil){const r=S.abil[k];if(!(r>0))continue;const [sk,x]=k.split('|');let nm=x,fx='';
-    if(x.startsWith('C:')){nm=x.slice(2);const cc=CAREER_AB[S.career],it=cc&&cc.list.find(l=>l[0]===nm);fx=it?it[2]:''}
+    if(x.startsWith('C:')){nm=x.slice(2);const cc=CAREER_AB[S.career],it=cc&&cc.list.find(l=>l[0]===nm);fx=it?cfx(it,r):''}
     else fx=AB[x]?AB[x](r):'';
     out.push({x:nm,s:sk,r,fx})}
   return out;
 }
 function PL(){
   const p=S.pl;WEAPONS=myWeapons();
-  if(p.v!==4){const fresh=!p.init;p.v=4;p.init=true;p.hpMax=20;p.hp=fresh?20:Math.min(p.hp||20,20);p.sil=(SPECIES[S.species]||{}).sil??1;p.cond=p.cond||{};p.wi=0;p.gk='';if(fresh||p.arc==null)p.arc=arcPool()}
+  if(p.v!==4){const fresh=!p.init;p.v=4;p.init=true;p.hpMax=20+4*abRank('Wounds','Thick Skin');p.hp=fresh?p.hpMax:Math.min(p.hp||p.hpMax,p.hpMax);p.sil=(SPECIES[S.species]||{}).sil??1;p.cond=p.cond||{};p.wi=0;p.gk='';if(fresh||p.arc==null)p.arc=arcPool()}
   const gk=S.armor+'|'+buyN('i|Energy Shield');
   if(p.gk!==gk){p.gk=gk;p.apMax=armorAP();p.ap=p.apMax}
   if(p.wi>=WEAPONS.length)p.wi=0;
@@ -925,8 +1000,12 @@ document.addEventListener('click',e=>{
     case 'spab':{if(!S.spAb)S.spAb={};if(S.spAb[v])delete S.spAb[v];else if(spLeft()>0)S.spAb[v]=true;break}
     case 'arcab':{if(!S.arcAb)S.arcAb={};if(S.arcAb[v])delete S.arcAb[v];else{const a=ARC_AB.find(x=>x[0]===v);if(a&&arcOK(a)&&arcKnown()<arcMax())S.arcAb[v]=true}break}
     case 'abc':{const cc=CAREER_AB[S.career];if(!cc)break;const it=cc.list.find(l=>l[0]===v);if(!it)break;
-      if(d<0){for(const k of cc.sk)delete S.abil[abKey(k,'C:'+v)]}
-      else if(!cc.sk.some(k=>abRank(k,'C:'+v))){const k=cc.sk.filter(k=>skillRank(k)>0&&canSpend(k,it[1])).sort((a,b)=>abLeft(b)-abLeft(a))[0];if(k)S.abil[abKey(k,'C:'+v)]=1}
+      const sks=cski(cc,it),mx=it[4]||1,rq=it[5],ck=n=>'C:'+n,cur=sks.find(k=>abRank(k,ck(v)));
+      if(d<0){if(cur){const n=abRank(cur,ck(v))-1;if(n)S.abil[abKey(cur,ck(v))]=n;else delete S.abil[abKey(cur,ck(v))]}
+        for(const o of cc.list){const q=o[5];if(q&&q[0]===v&&cab(v)<q[1])for(const k of cski(cc,o))delete S.abil[abKey(k,ck(o[0]))]}}
+      else if(!rq||cab(rq[0])>=rq[1]){
+        if(cur){if(abRank(cur,ck(v))<mx&&canSpend(cur,it[1]))S.abil[abKey(cur,ck(v))]++}
+        else{const k=sks.filter(k=>skillRank(k)>0&&canSpend(k,it[1])).sort((a,b)=>abLeft(b)-abLeft(a))[0];if(k)S.abil[abKey(k,ck(v))]=1}}
       break}
     case 'abil':{const n=Math.max(0,(S.abil[v]||0)+d);if(n)S.abil[v]=n;else delete S.abil[v];for(const x in REQ){const q=REQ[x],k2=abKey(q[0],x);if(S.abil[k2]&&abRank(q[0],q[1])<q[2])delete S.abil[k2]}break}
     case 'free':{S.freeAb=S.freeAb===v?'':v;break}
