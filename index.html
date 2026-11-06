@@ -519,7 +519,7 @@ function stepCareer(){
 }
 function stepSkills(){
   let h=`<h2>Skills and abilities</h2><div class="row"><span class="lab">Bonus ability points<small>GM-awarded extra ability points. <b>${XP().abil}</b> total.</small></span><span class="step"><button data-a="xp" data-v="abil" data-d="-1" ${XP().abil<=0?'disabled':''}>−</button><output>${XP().abil}</output><button data-a="xp" data-v="abil" data-d="1" ${XP().abil>=40?'disabled':''}>+</button></span></div>
-  <p class="lede">Every point of an attribute is one skill rank. You need at least rank 1 in a skill to take its abilities. Per the v0.4 book, abilities are free in the first playtest (the cost shown is for later) and can be ranked up with no limit.</p>`;
+  <p class="lede">Every point of an attribute is one skill rank. You need at least rank 1 in a skill to take its abilities. Per the v0.4 book, abilities are free in the first playtest and can be ranked up with no limit.</p>`;
   S.col=S.col||{};
   h+=`<div class="row"><span class="lab">Bonus skill points<small>Per the book: 5 free ranks for any skill, whatever its attribute. <b>${bonusLeft()}</b> of ${BONUS_SK} left.</small></span></div>`;
   h+=`<div class="actions" style="margin:0 0 6px"><button class="btn" data-a="col" data-v="*open">Expand all</button><button class="btn" data-a="col" data-v="*shut">Collapse all</button></div>`;
@@ -535,12 +535,12 @@ function stepSkills(){
       const abs=sk[s];
       const showAbs=abs;
       if(showAbs.length&&!sc){
-        h+=`<div class="abilities"><p class="meter" style="margin:0 0 4px">${r>0?`${s}: abilities are free in the first playtest. Cost shown is for later.`:`Put a rank in ${s} to unlock these.`}</p>`;
+        h+=`<div class="abilities"><p class="meter" style="margin:0 0 4px">${r>0?`${s}: abilities are free in the first playtest.`:`Put a rank in ${s} to unlock these.`}</p>`;
         for(const x of showAbs){
           const k=abKey(s,x),ar=abRank(s,x),free=S.freeAb===k;
           const maxR=(MAXR[x]||5)>1?99:1;
           const uc=unitCost(x),step=ar<maxR&&reqOk(x)&&skOk(s,x)&&r>0;
-          h+=`<div class="row"><span class="lab">${x} <span class="chip">${uc}${(MAXR[x]||5)>1?'/rank':' pt'}${EST.includes(x)?' est.':''}</span>${free?' <span class="chip">free R1</span>':''}</span><span class="step"><button data-a="abil" data-v="${k}" data-d="-1" ${ar<=0?'disabled':''}>−</button><output>${ar}</output><button data-a="abil" data-v="${k}" data-d="1" ${step?'':'disabled'}>+</button></span><span class="fx">${ar?AB[x](ar):'Not learned.'}</span></div>`;
+          h+=`<div class="row"><span class="lab">${x} ${(MAXR[x]||5)>1?'<span class="chip">ranked</span>':''}${free?' <span class="chip">free R1</span>':''}</span><span class="step"><button data-a="abil" data-v="${k}" data-d="-1" ${ar<=0?'disabled':''}>−</button><output>${ar}</output><button data-a="abil" data-v="${k}" data-d="1" ${step?'':'disabled'}>+</button></span><span class="fx">${ar?AB[x](ar):'Not learned.'}</span></div>`;
         }
         h+='</div>';
       }
@@ -555,7 +555,7 @@ function stepSkills(){
     for(const it of cc.list){
       const x=it[0],r=it[1],sks=cski(cc,it),mx=(it[4]||1)>1?99:1,own=cab(x),rq=it[5],rqok=!rq||cab(rq[0])>=rq[1];
       const can=own<mx&&rqok&&(own?sks.some(k=>abRank(k,'C:'+x)&&canSpend(k,r)):sks.some(k=>skillRank(k)>0&&canSpend(k,r)));
-      h+=`<div class="row"><span class="lab">${x} <span class="chip">${r} pt${r>1?'s':''}${mx>1?'/rank':''}</span>${it[3]?` <span class="chip">${sks.length>2?'Charm':sks.join(' / ')}</span>`:''}</span><span class="step"><button data-a="abc" data-v="${x}" data-d="-1" ${own?'':'disabled'}>−</button><output>${own}</output><button data-a="abc" data-v="${x}" data-d="1" ${can?'':'disabled'}>+</button></span><span class="fx">${cfx(it,Math.max(own,1))}</span></div>`;
+      h+=`<div class="row"><span class="lab">${x} ${mx>1?'<span class="chip">ranked</span>':''}${it[3]?` <span class="chip">${sks.length>2?'Charm':sks.join(' / ')}</span>`:''}</span><span class="step"><button data-a="abc" data-v="${x}" data-d="-1" ${own?'':'disabled'}>−</button><output>${own}</output><button data-a="abc" data-v="${x}" data-d="1" ${can?'':'disabled'}>+</button></span><span class="fx">${cfx(it,Math.max(own,1))}</span></div>`;
     }
     h+='</div>';
   }
