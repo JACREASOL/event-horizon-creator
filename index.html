@@ -531,7 +531,7 @@ function stepSkills(){
         h+=`<div class="abilities"><p class="meter" style="margin:0 0 4px">${s} ability points: <b>${Math.max(0,abLeft(s))}</b> of ${r} left${abLeft(s)<0?` · ${-abLeft(s)} from bonus`:''}</p>`;
         for(const x of showAbs){
           const k=abKey(s,x),ar=abRank(s,x),free=S.freeAb===k;
-          const maxR=Math.min(MAXR[x]||5,XP().abil>0?5:Math.max(r,free?1:0));
+          const maxR=(MAXR[x]||5)>1?99:1;
           const uc=unitCost(x),step=ar<maxR&&reqOk(x)&&skOk(s,x)&&(canSpend(s,uc)||(free&&ar===0));
           h+=`<div class="row"><span class="lab">${x} <span class="chip">${uc}${(MAXR[x]||5)>1?'/rank':' pt'}${EST.includes(x)?' est.':''}</span>${free?' <span class="chip">free R1</span>':''}</span><span class="step"><button data-a="abil" data-v="${k}" data-d="-1" ${ar<=0?'disabled':''}>−</button><output>${ar}</output><button data-a="abil" data-v="${k}" data-d="1" ${step?'':'disabled'}>+</button></span><span class="fx">${ar?AB[x](ar):'Not learned.'}</span></div>`;
         }
@@ -546,7 +546,7 @@ function stepSkills(){
   else{
     h+=`<p class="meter">Each ability is paid from the skill shown on its chip. Left: ${cc.sk.map(k=>`${k} <b>${abLeft(k)}</b>`).join(' · ')}. Only ${S.career} abilities show here.</p>${cc.note?`<p class="meter">${cc.note}</p>`:''}<div class="abilities">`;
     for(const it of cc.list){
-      const x=it[0],r=it[1],sks=cski(cc,it),mx=it[4]||1,own=cab(x),rq=it[5],rqok=!rq||cab(rq[0])>=rq[1];
+      const x=it[0],r=it[1],sks=cski(cc,it),mx=(it[4]||1)>1?99:1,own=cab(x),rq=it[5],rqok=!rq||cab(rq[0])>=rq[1];
       const can=own<mx&&rqok&&(own?sks.some(k=>abRank(k,'C:'+x)&&canSpend(k,r)):sks.some(k=>skillRank(k)>0&&canSpend(k,r)));
       h+=`<div class="row"><span class="lab">${x} <span class="chip">${r} pt${r>1?'s':''}${mx>1?'/rank':''}</span>${it[3]?` <span class="chip">${sks.length>2?'Charm':sks.join(' / ')}</span>`:''}</span><span class="step"><button data-a="abc" data-v="${x}" data-d="-1" ${own?'':'disabled'}>−</button><output>${own}</output><button data-a="abc" data-v="${x}" data-d="1" ${can?'':'disabled'}>+</button></span><span class="fx">${cfx(it,Math.max(own,1))}</span></div>`;
     }
@@ -1000,7 +1000,7 @@ document.addEventListener('click',e=>{
     case 'spab':{if(!S.spAb)S.spAb={};if(S.spAb[v])delete S.spAb[v];else if(spLeft()>0)S.spAb[v]=true;break}
     case 'arcab':{if(!S.arcAb)S.arcAb={};if(S.arcAb[v])delete S.arcAb[v];else{const a=ARC_AB.find(x=>x[0]===v);if(a&&arcOK(a)&&arcKnown()<arcMax())S.arcAb[v]=true}break}
     case 'abc':{const cc=CAREER_AB[S.career];if(!cc)break;const it=cc.list.find(l=>l[0]===v);if(!it)break;
-      const sks=cski(cc,it),mx=it[4]||1,rq=it[5],ck=n=>'C:'+n,cur=sks.find(k=>abRank(k,ck(v)));
+      const sks=cski(cc,it),mx=(it[4]||1)>1?99:1,rq=it[5],ck=n=>'C:'+n,cur=sks.find(k=>abRank(k,ck(v)));
       if(d<0){if(cur){const n=abRank(cur,ck(v))-1;if(n)S.abil[abKey(cur,ck(v))]=n;else delete S.abil[abKey(cur,ck(v))]}
         for(const o of cc.list){const q=o[5];if(q&&q[0]===v&&cab(v)<q[1])for(const k of cski(cc,o))delete S.abil[abKey(k,ck(o[0]))]}}
       else if(!rq||cab(rq[0])>=rq[1]){
